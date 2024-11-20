@@ -165,6 +165,14 @@ class Toolbar extends React.Component {
         field_name: 'text_input_',
       },
       {
+        key: 'BVNInput',
+        canHaveAnswer: true,
+        name: 'BVN Input',
+        label: intl.formatMessage({ id: 'place-holder-label' }),
+        icon: 'fas fa-font',
+        field_name: 'bvn_input_',
+      },
+      {
         key: 'EmailInput',
         canHaveAnswer: true,
         name: intl.formatMessage({ id: 'email-input' }),

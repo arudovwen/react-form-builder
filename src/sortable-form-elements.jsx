@@ -6,7 +6,7 @@ import { FieldSet } from './fieldset';
 import CustomElement from './form-elements/custom-element';
 
 const {
-  Header, Paragraph, Label, LineBreak, TextInput, EmailInput, PhoneNumber, NumberInput, TextArea, Dropdown, Checkboxes,
+  Header, Paragraph, Label, LineBreak, TextInput,BVNInput, EmailInput, PhoneNumber, NumberInput, TextArea, Dropdown, Checkboxes,
   DatePicker, RadioButtons, Image, Rating, Tags, Signature, HyperLink, Download, Camera, Range, FileUpload,
 } = BaseFormElements;
 
@@ -17,6 +17,7 @@ FormElements.Paragraph = SortableElement(Paragraph);
 FormElements.Label = SortableElement(Label);
 FormElements.LineBreak = SortableElement(LineBreak);
 FormElements.TextInput = SortableElement(TextInput);
+FormElements.BVNInput = SortableElement(BVNInput);
 FormElements.EmailInput = SortableElement(EmailInput);
 FormElements.PhoneNumber = SortableElement(PhoneNumber);
 FormElements.NumberInput = SortableElement(NumberInput);

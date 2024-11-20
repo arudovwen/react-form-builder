@@ -83,6 +83,44 @@ class LineBreak extends React.Component {
   }
 }
 
+class BVNInput extends React.Component {
+  constructor(props) {
+    super(props);
+    this.inputField = React.createRef();
+  }
+
+  render() {
+    const props = {};
+    props.type = 'text';
+    props.className = 'form-control';
+    props.name = this.props.data.field_name;
+    if (this.props.mutable) {
+      props.defaultValue = this.props.defaultValue;
+      props.ref = this.inputField;
+    }
+
+    let baseClasses = 'SortableItem rfb-item';
+    if (this.props.data.pageBreakBefore) { baseClasses += ' alwaysbreak'; }
+
+    if (this.props.read_only) {
+      props.disabled = 'disabled';
+    }
+//  async function validateInput(){
+
+//  }
+    return (
+      <div style={{ ...this.props.style }} className={baseClasses}>
+        <ComponentHeader {...this.props} />
+        <div className="form-group">
+          <ComponentLabel {...this.props} />
+          Test
+          <input {...props} />
+        </div>
+      </div>
+    );
+  }
+}
+
 class TextInput extends React.Component {
   constructor(props) {
     super(props);
@@ -105,12 +143,15 @@ class TextInput extends React.Component {
     if (this.props.read_only) {
       props.disabled = 'disabled';
     }
+//  async function validateInput(){
 
+//  }
     return (
       <div style={{ ...this.props.style }} className={baseClasses}>
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
+          Test
           <input {...props} />
         </div>
       </div>
@@ -933,6 +974,7 @@ FormElements.Paragraph = Paragraph;
 FormElements.Label = Label;
 FormElements.LineBreak = LineBreak;
 FormElements.TextInput = TextInput;
+FormElements.BVNInput = BVNInput;
 FormElements.EmailInput = EmailInput;
 FormElements.PhoneNumber = PhoneNumber;
 FormElements.NumberInput = NumberInput;

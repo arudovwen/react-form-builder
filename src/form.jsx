@@ -390,6 +390,7 @@ class ReactForm extends React.Component {
       if (!item) return null;
       switch (item.element) {
         case 'TextInput':
+        case 'BVNInput':
         case 'EmailInput':
         case 'PhoneNumber':
         case 'NumberInput':

@@ -168,9 +168,11 @@ class Toolbar extends React.Component {
         key: 'BVNInput',
         canHaveAnswer: true,
         name: 'BVN Input',
-        label: intl.formatMessage({ id: 'place-holder-label' }),
+        label: 'Bank Verification Number',
         icon: 'fas fa-font',
         field_name: 'bvn_input_',
+        canHaveMaxLength: true,
+        maxLength: null,
       },
       {
         key: 'EmailInput',
@@ -393,6 +395,7 @@ class Toolbar extends React.Component {
     if (item.inherited !== undefined) { elementOptions.inherited = item.inherited; }
 
     elementOptions.canHavePageBreakBefore = item.canHavePageBreakBefore !== false;
+    elementOptions.canHaveMaxLength = item.canHaveMaxLength !== false;
     elementOptions.canHaveAlternateForm = item.canHaveAlternateForm !== false;
     elementOptions.canHaveDisplayHorizontal = item.canHaveDisplayHorizontal !== false;
     if (elementOptions.canHaveDisplayHorizontal) {

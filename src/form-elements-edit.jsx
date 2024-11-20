@@ -135,7 +135,7 @@ export default class FormElementsEdit extends React.Component {
     if (this.props.element.hasOwnProperty('label')) {
       editorState = this.convertFromHTML(this.props.element.label);
     }
-
+    console.log("🚀 ~ FormElementsEdit ~ render ~ this.props.element:", this.props.element)
     return (
       <div>
         <div className="clearfix">
@@ -367,6 +367,14 @@ export default class FormElementsEdit extends React.Component {
               <label className="control-label" htmlFor="rangeMax"><IntlMessages id="max" /></label>
               <input id="rangeMax" type="number" className="form-control" defaultValue={this.props.element.max_value} onBlur={this.updateElement.bind(this)} onChange={this.editElementProp.bind(this, 'max_value', 'value')} />
               <input type="text" className="form-control" defaultValue={this.props.element.max_label} onBlur={this.updateElement.bind(this)} onChange={this.editElementProp.bind(this, 'max_label', 'value')} />
+            </div>
+          </div>
+        }
+        { this.props.element.hasOwnProperty('canHaveMaxLength') &&
+          <div className="form-group">
+            <div className="form-group-range">
+            <label className="control-label" htmlFor="maxLength">Max Length</label>
+              <input type="number" className="form-control" defaultValue={this.props.element.maxLength} onBlur={this.updateElement.bind(this)} onChange={this.editElementProp.bind(this, 'maxLength', 'value')} />
             </div>
           </div>
         }

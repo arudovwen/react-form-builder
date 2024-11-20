@@ -13,6 +13,7 @@ type BaseElement = {
     | "Checkboxes"
     | "Multiple Choice"
     | "Text Input"
+    | "BVN Input"
     | "Number Input"
     | "Multi-line Input"
     | "Two Column Row"

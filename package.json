@@ -1,13 +1,13 @@
 {
-  "name": "@arudovwen/react-form-builder2",
-  "version": "0.0.1",
+  "name": "react-form-builder2",
+  "version": "0.18.4",
   "description": "A complete form builder for react.",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/arudovwen/react-form-builder.git"
+    "url": "git+https://github.com/kiho/react-form-builder.git"
   },
   "files": [
     "lib",
@@ -26,8 +26,14 @@
   "engines": {
     "node": ">=12.0.0"
   },
-  "author": "Success Ahon",
-  "contributors": [],
+  "author": "Kiho Chang",
+  "contributors": [
+    {
+      "name": "Zach Robichaud",
+      "email": "zach2825@gmail.com",
+      "url": "https://turtlebytes.com"
+    }
+  ],
   "dependencies": {
     "beedle": "^0.8.1",
     "classnames": "^2.2.6",

@@ -5,6 +5,8 @@ import React from 'react';
 import Select from 'react-select';
 import SignaturePad from 'react-signature-canvas';
 import ReactBootstrapSlider from 'react-bootstrap-slider';
+import axios from 'axios';
+import debounce from 'debounce';
 
 import StarRating from './star-rating';
 import DatePicker from './date-picker';
@@ -12,6 +14,8 @@ import ComponentHeader from './component-header';
 import ComponentLabel from './component-label';
 import myxss from './myxss';
 import ErrorMessage from '../error-message';
+import SuccessMessage from '../success-message';
+import { getExtensionFromMimeType } from '../utils/getExt';
 
 const FormElements = {};
 
@@ -118,51 +122,319 @@ class LineBreak extends React.Component {
     );
   }
 }
-
-class BVNInput extends React.Component {
+// https://reqres.in/api/users
+class DynamicInput extends React.Component {
   constructor(props) {
     super(props);
     this.inputField = React.createRef();
+    this.submitBtnRef = React.createRef(); // Add a ref for the submit button
+    // Use state for managing errorText, successText, and validating state
+    this.state = {
+      errorText: '',
+      successText: '',
+      validating: false,
+      description: '',
+    };
+
+    // Debounced functions
+    this.debouncedValidateInput = debounce(this.validateInput, 1200);
+    this.debouncedValidateError = debounce(this.handleError, 1500);
   }
 
-  render() {
-    const props = {};
-    const error = '';
-    props.type = 'text';
-    props.className = 'form-control';
-    props.name = this.props.data.field_name;
+  // Function to validate input using an API request
+  async validateInput(value) {
+    const { url, method, apiKey } = this.props.data;
 
-    if (this.props.mutable) {
-      props.defaultValue = this.props.defaultValue;
+    // Validate if URL is provided
+    if (!url) {
+      this.setState({ errorText: 'Please add a valid API URL' });
+      return;
+    }
+
+    // API call to validate the input
+    try {
+      this.setState({ validating: true });
+      const { data, status } = await axios[method || 'get'](`${url}/${value}`, {
+        headers: { Authorization: apiKey },
+      });
+      if (status === 200) {
+        if (data?.data?.status === true) {
+          this.setState({
+            successText: 'Validation success',
+            errorText: '',
+            description: data.data?.description,
+          });
+          if (this.submitBtnRef.current) {
+            this.submitBtnRef.current.disabled = false; // Enable the submit button
+          }
+        } else {
+          if (this.submitBtnRef.current) {
+            this.submitBtnRef.current.disabled = true; // Disable the submit button
+          }
+          this.setState({
+            errorText: 'Data not found!',
+            successText: '',
+            description: '',
+          });
+        }
+      }
+    } catch (error) {
+      this.setState({
+        errorText:
+          error?.response?.data?.message ||
+          'Validation failed, please try again',
+        successText: '',
+        description: '',
+      });
+      if (this.submitBtnRef.current) {
+        this.submitBtnRef.current.disabled = true; // Disable the submit button on error
+      }
+    } finally {
+      this.setState({ validating: false });
+    }
+  }
+
+  // Handle input changes and invoke the debounced validation function
+  handleChange = (event) => {
+    const { value } = event.target;
+
+    this.debouncedValidateError(value);
+  };
+
+  // Handle validation errors, updating errorText in state
+  handleError = (value) => {
+    const { url } = this.props.data;
+    if (!url) {
+      this.setState({ errorText: 'Please add a valid API URL' });
+      if (this.submitBtnRef.current) {
+        this.submitBtnRef.current.disabled = true; // Disable the submit button if no URL
+      }
+    } else {
+      this.setState({ errorText: '' });
+      if (this.submitBtnRef.current) {
+        this.submitBtnRef.current.disabled = false; // Enable submit button if URL exists
+      }
+      this.debouncedValidateInput(value);
+    }
+  };
+
+  render() {
+    const { data, mutable, defaultValue, read_only, style } = this.props;
+    const { field_name, maxLength } = data;
+
+    // Default props setup for the input field
+    const props = {
+      type: 'text',
+      className: 'form-control',
+      name: field_name,
+      disabled: read_only ? 'disabled' : undefined,
+      maxLength: maxLength || undefined,
+    };
+
+    // If mutable, add defaultValue and ref
+    if (mutable) {
+      props.defaultValue = defaultValue;
       props.ref = this.inputField;
     }
-    if (this.props.data.maxLength) {
-      props.maxLength = this.props.data.maxLength;
-    }
 
+    // Base classes for the input container
     let baseClasses = 'SortableItem rfb-item';
-    if (this.props.data.pageBreakBefore) {
+    if (data.pageBreakBefore) {
       baseClasses += ' alwaysbreak';
     }
-    // if (error) {
-    //   props.className += ' border-danger';
-    // }
-    if (this.props.read_only) {
-      props.disabled = 'disabled';
-    }
-    //  async function validateInput(){
-
-    //  }
-    // function handleChange(value) {
-    //   console.log('🚀 ~ BVNInput ~ handleChange ~ value:', value);
-    // }
+    // https://api.dev.workflow.kusala.com.ng/api/v1/WorkFlows/validate
     return (
-      <div style={{ ...this.props.style }} className={baseClasses}>
+      <div style={style} className={baseClasses}>
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
-          <input {...props} />
-          {error && <ErrorMessage message={error} />}
+          <div className="d-flex align-items-center position-relative clearfix pr-6">
+            <input {...props} onChange={this.handleChange} />
+            {this.state.validating && (
+              <div
+                className="spinner-border spinner-border-sm text-secondary position-absolute align-middle"
+                style={{ right: '16px' }}
+                role="status"
+              >
+                <span className="sr-only">Validating...</span>
+              </div>
+            )}
+          </div>
+          {/* Render error message if there's one */}
+          {this.state.errorText && (
+            <ErrorMessage message={this.state.errorText} />
+          )}
+          {this.state.successText && !this.state.description && (
+            <SuccessMessage message={this.state.successText} />
+          )}
+          {this.state.description && (
+            <div style={{ marginTop: '6px' }}>
+              <span className="block text-capitalize text-14 font-weight-bold pt-1">
+                {this.state.description}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+}
+
+class DocumentSelect extends React.Component {
+  constructor(props) {
+    super(props);
+    this.inputField = React.createRef();
+    this.submitBtnRef = React.createRef(); // Add a ref for the submit button
+    // Use state for managing errorText, successText, and validating state
+    this.state = {
+      errorText: '',
+      successText: '',
+      description: '',
+      fileLoading: false,
+      documents: [],
+      isSigned: false,
+      clicked: 0,
+    };
+    this.checkDocument = this.checkDocument.bind(this);
+  }
+
+  checkDocument = async (id) => {
+    try {
+      const token = window.localStorage.getItem('token');
+      this.setState({ fileLoading: true });
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
+      const response = await axios.get(
+        `https://api.dev.document.kusala.com.ng/api/v1/documentmanagement/get-all-documents-main/${id}`, config,
+      );
+      if (response.status === 200) {
+        this.setState({
+         isSigned: response.data.data,
+        });
+      }
+    } finally {
+      this.setState({ fileLoading: false });
+    }
+  };
+
+  componentDidMount() {
+    const { data } = this.props;
+    const { documentId } = data;
+    const tempData = documentId && JSON.parse(documentId);
+
+    if (tempData?.value) {
+      this.checkDocument(tempData.value);
+
+      // Set up an interval to call checkDocument every 1 minute
+      this.intervalId = setInterval(() => {
+        this.checkDocument(tempData.value);
+      }, 10 * 1000); // 60000ms = 1 minute
+    }
+  }
+
+  componentWillUnmount() {
+    // Clear the interval when the component is unmounted
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
+  }
+
+  render() {
+    const { data, mutable, defaultValue, read_only, style } = this.props;
+    const { field_name, documentId } = data;
+    const tempData = documentId && JSON.parse(documentId);
+
+    // Default props setup for the input field
+    const props = {
+      type: 'text',
+      className: 'form-control bg-transparent',
+      name: field_name,
+      disabled: read_only ? 'disabled' : undefined,
+    };
+
+    // If mutable, add defaultValue and ref
+    if (mutable) {
+      props.defaultValue = defaultValue;
+      props.ref = this.inputField;
+    }
+
+    // Base classes for the input container
+    let baseClasses = 'SortableItem rfb-item';
+    if (data.pageBreakBefore) {
+      baseClasses += ' alwaysbreak';
+    }
+
+    // https://api.dev.workflow.kusala.com.ng/api/v1/WorkFlows/validate
+    return (
+      <div style={style} className={baseClasses}>
+        <ComponentHeader {...this.props} />
+        <div className="form-group">
+          <ComponentLabel {...this.props} />
+          <div
+            className="d-flex align-items-center position-relative clearfix pr-6"
+            style={{ columnGap: '12px' }}
+          >
+            <input {...props} defaultValue={tempData?.label ?? ''} readOnly />
+            {this.state.validating && (
+              <div
+                className="spinner-border spinner-border-sm text-secondary position-absolute align-middle"
+                style={{ right: '16px' }}
+                role="status"
+              >
+                <span className="sr-only">Validating...</span>
+              </div>
+            )}
+
+         { !this.state.isSigned ? <div className="d-flex"
+              style={{ alignItems: 'center', columnGap: '8px' }}>
+          <a
+              target="_blank"
+              href={`https://kusala.com.ng/document/render/read/${tempData?.value}?signatory_type=form`}
+            >
+              <button
+                type="button"
+                className="btn btn-sm btn-primary"
+                style={{ padding: '6px 20px', borderRadius: '6px' }}
+                disabled={!tempData?.value}
+              >
+                Sign
+              </button>
+            </a>
+            {/* <button
+                type="button"
+                className="btn btn-sm btn-secondary"
+                style={{ padding: '6px 20px', borderRadius: '6px' }}
+                disabled={!tempData?.value}
+              >
+                Query
+              </button> */}
+         </div> :
+            <button
+              type="button"
+              className="btn btn-sm btn-success d-flex"
+              style={{ padding: '6px 20px', borderRadius: '6px', alignItems: 'center', columnGap: '8px' }}
+
+            >
+              Signed <i className="far fa-check-circle"></i>
+            </button>}
+          </div>
+          {/* Render error message if there's one */}
+          {this.state.errorText && (
+            <ErrorMessage message={this.state.errorText} />
+          )}
+          {this.state.successText && !this.state.description && (
+            <SuccessMessage message={this.state.successText} />
+          )}
+          {this.state.description && (
+            <div style={{ marginTop: '6px' }}>
+              <span className="block text-capitalize text-14 font-weight-bold pt-1">
+                {this.state.description}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -201,7 +473,6 @@ class TextInput extends React.Component {
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
-          Test
           <input {...props} />
         </div>
       </div>
@@ -904,10 +1175,53 @@ class Camera extends React.Component {
 class FileUpload extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { fileUpload: null };
+    this.state = { fileUpload: null, fileLoading: false, fileStatus: null };
   }
 
-  displayFileUpload = (e) => {
+  getBase64 = (file) => new Promise((resolve, reject) => {
+      // eslint-disable-next-line no-undef
+      const reader = new FileReader();
+
+      reader.onload = function (event) {
+        // Resolve the promise with the base64 string
+        const base64String = event.target.result.split(',')[1];
+        resolve(base64String);
+      };
+
+      reader.onerror = function (error) {
+        // Reject the promise if there was an error
+        reject(error);
+      };
+
+      // Read the file as a Data URL (Base64-encoded string)
+      reader.readAsDataURL(file);
+    });
+
+  // eslint-disable-next-line consistent-return
+  uploadFile = async (file) => {
+    try {
+      this.setState({ fileLoading: true });
+      const data = {
+        fileName: file.name,
+        base64: await this.getBase64(file),
+        ext: `.${getExtensionFromMimeType(file.type)}`,
+      };
+      const response = await axios.post(
+        'https://api.dev.workflow.kusala.com.ng/api/v1/FileUpload/upload-document',
+        data,
+      );
+      this.setState({ fileStatus: true });
+      return response.data.data;
+    } catch (error) {
+      this.setState({
+        fileStatus: error.response.data.message || 'Unable to upload file',
+      });
+    } finally {
+      this.setState({ fileLoading: false });
+    }
+  };
+
+  displayFileUpload = async (e) => {
     const self = this;
     const { target } = e;
     let file;
@@ -916,7 +1230,7 @@ class FileUpload extends React.Component {
       file = target.files[0];
 
       self.setState({
-        fileUpload: file,
+        fileUpload: await this.uploadFile(file),
       });
     }
   };
@@ -924,39 +1238,44 @@ class FileUpload extends React.Component {
   clearFileUpload = () => {
     this.setState({
       fileUpload: null,
+      fileStatus: null,
+      fileLoading: false,
     });
   };
 
   saveFile = async (e) => {
     e.preventDefault();
-    const sourceUrl = this.props.defaultValue;
-    const response = await fetch(sourceUrl, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json; charset=utf-8',
-      },
-      responseType: 'blob',
-    });
-    const dispositionHeader = response.headers.get('Content-Disposition');
-    const resBlob = await response.blob();
-    // eslint-disable-next-line no-undef
-    const blob = new Blob([resBlob], {
-      type: this.props.data.fileType || response.headers.get('Content-Type'),
-    });
-    if (dispositionHeader && dispositionHeader.indexOf(';filename=') > -1) {
-      const fileName = dispositionHeader.split(';filename=')[1];
-      saveAs(blob, fileName);
-    } else {
-      const fileName = sourceUrl.substring(sourceUrl.lastIndexOf('/') + 1);
-      saveAs(response.url, fileName);
-    }
+    const sourceUrl = this.props.defaultValue.url;
+    window.open(sourceUrl, '_blank');
+    // const response = await fetch(sourceUrl, {
+    //   method: 'GET',
+    //   headers: {
+    //     Accept: 'application/json',
+    //     'Content-Type': 'application/json; charset=utf-8',
+    //   },
+    //   responseType: 'blob',
+    // });
+    // const dispositionHeader = response.headers.get('Content-Disposition');
+    // const resBlob = await response.blob();
+    // // eslint-disable-next-line no-undef
+    // const blob = new Blob([resBlob], {
+    //   type: this.props.data.fileType || response.headers.get('Content-Type'),
+    // });
+    // if (dispositionHeader && dispositionHeader.indexOf(';filename=') > -1) {
+    //   const fileName = dispositionHeader.split(';filename=')[1];
+    //   saveAs(blob, fileName);
+    // } else {
+    //   const fileName = sourceUrl.substring(sourceUrl.lastIndexOf('/') + 1);
+    //   saveAs(response.url, fileName);
+    // }
   };
 
   render() {
     let baseClasses = 'SortableItem rfb-item';
     const name = this.props.data.field_name;
-    const fileInputStyle = this.state.fileUpload ? { display: 'none' } : null;
+    const fileInputStyle = this.state.fileUpload
+      ? { display: 'none' }
+      : { display: 'flex' };
     if (this.props.data.pageBreakBefore) {
       baseClasses += ' alwaysbreak';
     }
@@ -965,30 +1284,46 @@ class FileUpload extends React.Component {
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
-          {this.props.read_only === true &&
-          this.props.defaultValue &&
-          this.props.defaultValue.length > 0 ? (
+          {this.props.read_only === true && this.props.defaultValue ? (
             <div>
-              <button className="btn btn-default" onClick={this.saveFile}>
-                <i className="fas fa-download"></i> Download File
-              </button>
+              <div
+                className="fileName"
+                style={{ textTransform: 'capitalize', marginBottom: '8px' }}
+              >
+                {this.props.defaultValue.fileName}
+              </div>
+              <div>
+                <button className="btn btn-view" onClick={this.saveFile}>
+                  <span>Preview File</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="image-upload-container">
-              <div style={fileInputStyle}>
+              <div style={{ ...fileInputStyle, alignItems: 'center' }}>
                 <input
                   name={name}
                   type="file"
                   accept={this.props.data.fileType || '*'}
                   className="image-upload"
                   onChange={this.displayFileUpload}
+                  disabled={this.props.read_only === true}
                 />
                 <div className="image-upload-control">
                   <div className="btn btn-default">
                     <i className="fas fa-file"></i> Upload File
                   </div>
-                  <p>Select a file from your computer or device.</p>
+                  <p style={{ padding: '0 10px', margin: 0 }}>
+                    Select a file from your device.
+                  </p>
                 </div>
+                {this.state.fileLoading && (
+                  <div
+                    className="spinner-border spinner-border-sm text-secondary position-absolute align-middle"
+                    style={{ right: '16px' }}
+                    role="status"
+                  ></div>
+                )}
               </div>
 
               {this.state.fileUpload && (
@@ -997,24 +1332,40 @@ class FileUpload extends React.Component {
                     <div
                       style={{ display: 'inline-block', marginRight: '5px' }}
                     >
-                      {`Name: ${this.state.fileUpload.name}`}
+                      {`File Name: ${this.state.fileUpload.fileName}`}
                     </div>
-                    <div style={{ display: 'inline-block', marginLeft: '5px' }}>
-                      {this.state.fileUpload.size.length > 6
-                        ? `Size:  ${Math.ceil(
-                            this.state.fileUpload.size / (1024 * 1024),
-                          )} mb`
-                        : `Size:  ${Math.ceil(
-                            this.state.fileUpload.size / 1024,
-                          )} kb`}
-                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-file-upload-clear"
+                      style={{
+                        padding: '4px 0',
+                        fontSize: '12px',
+                        marginTop: '6px',
+                      }}
+                      onClick={this.clearFileUpload}
+                    >
+                      <i className="fas fa-trash"></i>
+                    </button>
                   </div>
-                  <br />
+
                   <div
-                    className="btn btn-file-upload-clear"
-                    onClick={this.clearFileUpload}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'flex-end',
+                      columnGap: '20px',
+                      alignItems: 'center',
+                      marginTop: '4px',
+                    }}
                   >
-                    <i className="fas fa-times"></i> Clear File
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        color: 'green',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      File uploaded successfully
+                    </span>
                   </div>
                 </div>
               )}
@@ -1125,7 +1476,8 @@ FormElements.Paragraph = Paragraph;
 FormElements.Label = Label;
 FormElements.LineBreak = LineBreak;
 FormElements.TextInput = TextInput;
-FormElements.BVNInput = BVNInput;
+FormElements.DynamicInput = DynamicInput;
+FormElements.DocumentSelect = DocumentSelect;
 FormElements.EmailInput = EmailInput;
 FormElements.PhoneNumber = PhoneNumber;
 FormElements.NumberInput = NumberInput;

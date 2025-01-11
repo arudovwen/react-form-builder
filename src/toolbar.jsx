@@ -1,6 +1,6 @@
 /**
-  * <Toolbar />
-  */
+ * <Toolbar />
+ */
 
 import React from 'react';
 import { injectIntl } from 'react-intl';
@@ -20,10 +20,14 @@ function buildItems(items, defaultItems) {
   if (!items) {
     return defaultItems;
   }
-  return items.map(x => {
-    let found = defaultItems.find(y => (x.element === y.element && y.key === x.key));
+  return items.map((x) => {
+    let found = defaultItems.find(
+      (y) => x.element === y.element && y.key === x.key,
+    );
     if (!found) {
-      found = defaultItems.find(y => (x.element || x.key) === (y.element || y.key));
+      found = defaultItems.find(
+        (y) => (x.element || x.key) === (y.element || y.key),
+      );
     }
     if (found) {
       if (x.inherited !== false) {
@@ -37,10 +41,11 @@ function buildItems(items, defaultItems) {
 }
 
 function buildGroupItems(allItems) {
-  const items = allItems.filter(x => !x.group_name);
-  const gItems = allItems.filter(x => !!x.group_name);
-  const grouped = groupBy(gItems, x => x.group_name);
-  const groupKeys = gItems.map(x => x.group_name)
+  const items = allItems.filter((x) => !x.group_name);
+  const gItems = allItems.filter((x) => !!x.group_name);
+  const grouped = groupBy(gItems, (x) => x.group_name);
+  const groupKeys = gItems
+    .map((x) => x.group_name)
     .filter((v, i, self) => self.indexOf(v) === i);
   return { items, grouped, groupKeys };
 }
@@ -57,34 +62,82 @@ class Toolbar extends React.Component {
   }
 
   componentDidMount() {
-    store.subscribe(state => this.setState({ store: state }));
+    store.subscribe((state) => this.setState({ store: state }));
   }
 
   static _defaultItemOptions(element, intl) {
     switch (element) {
       case 'Dropdown':
         return [
-          { value: 'place_holder_option_1', text: intl.formatMessage({ id: 'place-holder-option-1' }), key: `dropdown_option_${ID.uuid()}` },
-          { value: 'place_holder_option_2', text: intl.formatMessage({ id: 'place-holder-option-2' }), key: `dropdown_option_${ID.uuid()}` },
-          { value: 'place_holder_option_3', text: intl.formatMessage({ id: 'place-holder-option-3' }), key: `dropdown_option_${ID.uuid()}` },
+          {
+            value: 'place_holder_option_1',
+            text: intl.formatMessage({ id: 'place-holder-option-1' }),
+            key: `dropdown_option_${ID.uuid()}`,
+          },
+          {
+            value: 'place_holder_option_2',
+            text: intl.formatMessage({ id: 'place-holder-option-2' }),
+            key: `dropdown_option_${ID.uuid()}`,
+          },
+          {
+            value: 'place_holder_option_3',
+            text: intl.formatMessage({ id: 'place-holder-option-3' }),
+            key: `dropdown_option_${ID.uuid()}`,
+          },
         ];
       case 'Tags':
         return [
-          { value: 'place_holder_tag_1', text: intl.formatMessage({ id: 'place-holder-tag-1' }), key: `tags_option_${ID.uuid()}` },
-          { value: 'place_holder_tag_2', text: intl.formatMessage({ id: 'place-holder-tag-2' }), key: `tags_option_${ID.uuid()}` },
-          { value: 'place_holder_tag_3', text: intl.formatMessage({ id: 'place-holder-tag-3' }), key: `tags_option_${ID.uuid()}` },
+          {
+            value: 'place_holder_tag_1',
+            text: intl.formatMessage({ id: 'place-holder-tag-1' }),
+            key: `tags_option_${ID.uuid()}`,
+          },
+          {
+            value: 'place_holder_tag_2',
+            text: intl.formatMessage({ id: 'place-holder-tag-2' }),
+            key: `tags_option_${ID.uuid()}`,
+          },
+          {
+            value: 'place_holder_tag_3',
+            text: intl.formatMessage({ id: 'place-holder-tag-3' }),
+            key: `tags_option_${ID.uuid()}`,
+          },
         ];
       case 'Checkboxes':
         return [
-          { value: 'place_holder_option_1', text: intl.formatMessage({ id: 'place-holder-option-1' }), key: `checkboxes_option_${ID.uuid()}` },
-          { value: 'place_holder_option_2', text: intl.formatMessage({ id: 'place-holder-option-2' }), key: `checkboxes_option_${ID.uuid()}` },
-          { value: 'place_holder_option_3', text: intl.formatMessage({ id: 'place-holder-option-3' }), key: `checkboxes_option_${ID.uuid()}` },
+          {
+            value: 'place_holder_option_1',
+            text: intl.formatMessage({ id: 'place-holder-option-1' }),
+            key: `checkboxes_option_${ID.uuid()}`,
+          },
+          {
+            value: 'place_holder_option_2',
+            text: intl.formatMessage({ id: 'place-holder-option-2' }),
+            key: `checkboxes_option_${ID.uuid()}`,
+          },
+          {
+            value: 'place_holder_option_3',
+            text: intl.formatMessage({ id: 'place-holder-option-3' }),
+            key: `checkboxes_option_${ID.uuid()}`,
+          },
         ];
       case 'RadioButtons':
         return [
-          { value: 'place_holder_option_1', text: intl.formatMessage({ id: 'place-holder-option-1' }), key: `radiobuttons_option_${ID.uuid()}` },
-          { value: 'place_holder_option_2', text: intl.formatMessage({ id: 'place-holder-option-2' }), key: `radiobuttons_option_${ID.uuid()}` },
-          { value: 'place_holder_option_3', text: intl.formatMessage({ id: 'place-holder-option-3' }), key: `radiobuttons_option_${ID.uuid()}` },
+          {
+            value: 'place_holder_option_1',
+            text: intl.formatMessage({ id: 'place-holder-option-1' }),
+            key: `radiobuttons_option_${ID.uuid()}`,
+          },
+          {
+            value: 'place_holder_option_2',
+            text: intl.formatMessage({ id: 'place-holder-option-2' }),
+            key: `radiobuttons_option_${ID.uuid()}`,
+          },
+          {
+            value: 'place_holder_option_3',
+            text: intl.formatMessage({ id: 'place-holder-option-3' }),
+            key: `radiobuttons_option_${ID.uuid()}`,
+          },
         ];
       default:
         return [];
@@ -165,14 +218,25 @@ class Toolbar extends React.Component {
         field_name: 'text_input_',
       },
       {
-        key: 'BVNInput',
+        key: 'DynamicInput',
         canHaveAnswer: true,
-        name: 'BVN Input',
-        label: 'Bank Verification Number',
+        name: 'Validation Input',
+        label: 'Validation Input',
         icon: 'fas fa-font',
-        field_name: 'bvn_input_',
+        field_name: 'dynamic_input_',
         canHaveMaxLength: true,
+        canMakeApiValidation: true,
         maxLength: null,
+      },
+      {
+        key: 'DocumentSelect',
+        canHaveAnswer: false,
+        name: 'Document Select',
+        label: 'Document Name',
+        icon: 'far fa-caret-square-down',
+        field_name: 'document_select_',
+        canSelectDocuments: true,
+
       },
       {
         key: 'EmailInput',
@@ -213,6 +277,89 @@ class Toolbar extends React.Component {
         label: intl.formatMessage({ id: 'fieldset' }),
         icon: 'fas fa-bars',
         field_name: 'fieldset-element',
+      },
+      // {
+      //   key: 'Image',
+      //   name: intl.formatMessage({ id: 'image' }),
+      //   label: '',
+      //   icon: 'far fa-image',
+      //   field_name: 'image_',
+      //   src: '',
+      // },
+      // {
+      //   key: 'Rating',
+      //   canHaveAnswer: true,
+      //   name: intl.formatMessage({ id: 'rating' }),
+      //   label: intl.formatMessage({ id: 'place-holder-label' }),
+      //   icon: 'fas fa-star',
+      //   field_name: 'rating_',
+      // },
+      {
+        key: 'DatePicker',
+        canDefaultToday: true,
+        canReadOnly: true,
+        dateFormat: 'MM/dd/yyyy',
+        timeFormat: 'hh:mm aa',
+        showTimeSelect: false,
+        showTimeSelectOnly: false,
+        showTimeInput: false,
+        name: intl.formatMessage({ id: 'date' }),
+        icon: 'far fa-calendar-alt',
+        label: intl.formatMessage({ id: 'place-holder-label' }),
+        field_name: 'date_picker_',
+      },
+      {
+        key: 'Signature',
+        canReadOnly: true,
+        name: intl.formatMessage({ id: 'signature' }),
+        icon: 'fas fa-pen-square',
+        label: intl.formatMessage({ id: 'signature' }),
+        field_name: 'signature_',
+      },
+      {
+        key: 'HyperLink',
+        name: intl.formatMessage({ id: 'website' }),
+        icon: 'fas fa-link',
+        static: true,
+        content: intl.formatMessage({ id: 'place-holder-website-link' }),
+        href: 'http://www.example.com',
+      },
+      // {
+      //   key: 'Download',
+      //   name: intl.formatMessage({ id: 'file-attachment' }),
+      //   icon: 'fas fa-file',
+      //   static: true,
+      //   content: intl.formatMessage({ id: 'place-holder-file-name' }),
+      //   field_name: 'download_',
+      //   file_path: '',
+      //   _href: '',
+      // },
+      {
+        key: 'Range',
+        name: intl.formatMessage({ id: 'range' }),
+        icon: 'fas fa-sliders-h',
+        label: intl.formatMessage({ id: 'place-holder-label' }),
+        field_name: 'range_',
+        step: 1,
+        default_value: 3,
+        min_value: 1,
+        max_value: 5,
+        min_label: intl.formatMessage({ id: 'easy' }),
+        max_label: intl.formatMessage({ id: 'difficult' }),
+      },
+      // {
+      //   key: 'Camera',
+      //   name: intl.formatMessage({ id: 'camera' }),
+      //   icon: 'fas fa-camera',
+      //   label: intl.formatMessage({ id: 'place-holder-label' }),
+      //   field_name: 'camera_',
+      // },
+      {
+        key: 'FileUpload',
+        name: intl.formatMessage({ id: 'file-upload' }),
+        icon: 'fas fa-file',
+        label: intl.formatMessage({ id: 'place-holder-label' }),
+        field_name: 'file_upload_',
       },
       {
         key: 'TwoColumnRow',
@@ -263,95 +410,12 @@ class Toolbar extends React.Component {
         col_count: 6,
         class_name: 'col-md-2',
       },
-      {
-        key: 'Image',
-        name: intl.formatMessage({ id: 'image' }),
-        label: '',
-        icon: 'far fa-image',
-        field_name: 'image_',
-        src: '',
-      },
-      {
-        key: 'Rating',
-        canHaveAnswer: true,
-        name: intl.formatMessage({ id: 'rating' }),
-        label: intl.formatMessage({ id: 'place-holder-label' }),
-        icon: 'fas fa-star',
-        field_name: 'rating_',
-      },
-      {
-        key: 'DatePicker',
-        canDefaultToday: true,
-        canReadOnly: true,
-        dateFormat: 'MM/dd/yyyy',
-        timeFormat: 'hh:mm aa',
-        showTimeSelect: false,
-        showTimeSelectOnly: false,
-        showTimeInput: false,
-        name: intl.formatMessage({ id: 'date' }),
-        icon: 'far fa-calendar-alt',
-        label: intl.formatMessage({ id: 'place-holder-label' }),
-        field_name: 'date_picker_',
-      },
-      {
-        key: 'Signature',
-        canReadOnly: true,
-        name: intl.formatMessage({ id: 'signature' }),
-        icon: 'fas fa-pen-square',
-        label: intl.formatMessage({ id: 'signature' }),
-        field_name: 'signature_',
-      },
-      {
-        key: 'HyperLink',
-        name: intl.formatMessage({ id: 'website' }),
-        icon: 'fas fa-link',
-        static: true,
-        content: intl.formatMessage({ id: 'place-holder-website-link' }),
-        href: 'http://www.example.com',
-      },
-      {
-        key: 'Download',
-        name: intl.formatMessage({ id: 'file-attachment' }),
-        icon: 'fas fa-file',
-        static: true,
-        content: intl.formatMessage({ id: 'place-holder-file-name' }),
-        field_name: 'download_',
-        file_path: '',
-        _href: '',
-      },
-      {
-        key: 'Range',
-        name: intl.formatMessage({ id: 'range' }),
-        icon: 'fas fa-sliders-h',
-        label: intl.formatMessage({ id: 'place-holder-label' }),
-        field_name: 'range_',
-        step: 1,
-        default_value: 3,
-        min_value: 1,
-        max_value: 5,
-        min_label: intl.formatMessage({ id: 'easy' }),
-        max_label: intl.formatMessage({ id: 'difficult' }),
-      },
-      {
-        key: 'Camera',
-        name: intl.formatMessage({ id: 'camera' }),
-        icon: 'fas fa-camera',
-        label: intl.formatMessage({ id: 'place-holder-label' }),
-        field_name: 'camera_',
-      },
-      {
-        key: 'FileUpload',
-        name: intl.formatMessage({ id: 'file-upload' }),
-        icon: 'fas fa-file',
-        label: intl.formatMessage({ id: 'place-holder-label' }),
-        field_name: 'file_upload_',
-      },
     ];
   }
 
   addCustomOptions(item, elementOptions) {
     if (item.type === 'custom') {
-      const customOptions = Object.assign({}, item, elementOptions);
+      const customOptions = { ...item, ...elementOptions };
       customOptions.custom = true;
       customOptions.component = item.component || null;
       customOptions.custom_options = item.custom_options || [];
@@ -382,22 +446,44 @@ class Toolbar extends React.Component {
       elementOptions.italic = false;
     }
 
-    if (item.canHaveAnswer) { elementOptions.canHaveAnswer = item.canHaveAnswer; }
+    if (item.canHaveAnswer) {
+      elementOptions.canHaveAnswer = item.canHaveAnswer;
+    }
 
-    if (item.canReadOnly) { elementOptions.readOnly = false; }
+    if (item.canReadOnly) {
+      elementOptions.readOnly = false;
+    }
 
-    if (item.canDefaultToday) { elementOptions.defaultToday = false; }
+    if (item.canDefaultToday) {
+      elementOptions.defaultToday = false;
+    }
 
-    if (item.content) { elementOptions.content = item.content; }
+    if (item.content) {
+      elementOptions.content = item.content;
+    }
 
-    if (item.href) { elementOptions.href = item.href; }
+    if (item.href) {
+      elementOptions.href = item.href;
+    }
 
-    if (item.inherited !== undefined) { elementOptions.inherited = item.inherited; }
+    if (item.inherited !== undefined) {
+      elementOptions.inherited = item.inherited;
+    }
 
-    elementOptions.canHavePageBreakBefore = item.canHavePageBreakBefore !== false;
-    elementOptions.canHaveMaxLength = item.canHaveMaxLength !== false;
+    if (item.canHaveMaxLength) {
+      elementOptions.canHaveMaxLength = item.canHaveMaxLength;
+    }
+    if (item.canMakeApiValidation) {
+      elementOptions.canMakeApiValidation = item.canMakeApiValidation;
+    }
+    if (item.canSelectDocuments) {
+      elementOptions.canSelectDocuments = item.canSelectDocuments;
+    }
+    elementOptions.canHavePageBreakBefore =
+      item.canHavePageBreakBefore !== false;
     elementOptions.canHaveAlternateForm = item.canHaveAlternateForm !== false;
-    elementOptions.canHaveDisplayHorizontal = item.canHaveDisplayHorizontal !== false;
+    elementOptions.canHaveDisplayHorizontal =
+      item.canHaveDisplayHorizontal !== false;
     if (elementOptions.canHaveDisplayHorizontal) {
       elementOptions.inline = item.inline;
     }
@@ -439,17 +525,29 @@ class Toolbar extends React.Component {
       elementOptions.col_count = item.col_count;
     }
 
-    if (item.defaultValue) { elementOptions.defaultValue = item.defaultValue; }
+    if (item.defaultValue) {
+      elementOptions.defaultValue = item.defaultValue;
+    }
 
-    if (item.field_name) { elementOptions.field_name = item.field_name + ID.uuid(); }
+    if (item.field_name) {
+      elementOptions.field_name = item.field_name + ID.uuid();
+    }
 
-    if (item.label) { elementOptions.label = item.label; }
+    if (item.label) {
+      elementOptions.label = item.label;
+    }
 
     if (item.options) {
       if (item.options.length > 0) {
-        elementOptions.options = item.options.map(x => ({ ...x, key: `custom_option_${ID.uuid()}` }));
+        elementOptions.options = item.options.map((x) => ({
+          ...x,
+          key: `custom_option_${ID.uuid()}`,
+        }));
       } else {
-        elementOptions.options = Toolbar._defaultItemOptions(elementOptions.element, intl);
+        elementOptions.options = Toolbar._defaultItemOptions(
+          elementOptions.element,
+          intl,
+        );
       }
     }
 
@@ -461,7 +559,14 @@ class Toolbar extends React.Component {
     store.dispatch('create', this.create(item));
   }
 
-  renderItem = (item) => (<ToolbarItem data={item} key={item.key} onClick={this._onClick.bind(this, item)} onCreate={this.create} />)
+  renderItem = (item) => (
+    <ToolbarItem
+      data={item}
+      key={item.key}
+      onClick={this._onClick.bind(this, item)}
+      onCreate={this.create}
+    />
+  );
 
   render() {
     const { items, grouped, groupKeys } = buildGroupItems(this.state.items);
@@ -469,12 +574,15 @@ class Toolbar extends React.Component {
       <div className="col-md-3 react-form-builder-toolbar float-right">
         <h4>{this.props.intl.formatMessage({ id: 'toolbox' })}</h4>
         <ul>
-          {
-            items.map(this.renderItem)
-          }
-          {
-            groupKeys.map(k => <ToolbarGroupItem key={k} name={k} group={grouped.get(k)} renderItem={this.renderItem} />)
-          }
+          {items.map(this.renderItem)}
+          {groupKeys.map((k) => (
+            <ToolbarGroupItem
+              key={k}
+              name={k}
+              group={grouped.get(k)}
+              renderItem={this.renderItem}
+            />
+          ))}
         </ul>
       </div>
     );

@@ -281,6 +281,23 @@ class Toolbar extends React.Component {
         denominators: null,
       },
       {
+        key: 'DynamicMultiInput',
+        canHaveAnswer: false,
+        name: 'Dynamic Multi Input',
+        label: 'Dynamic Multi Input',
+        icon: 'far fa-caret-square-down',
+        field_name: 'dynamic_multi_input_',
+        canHaveDynamicInputOptions: true,
+        dynamicInputOptions: [
+          {
+            key: 'key',
+            label: 'Label',
+            value: '',
+            type: 'text',
+          },
+        ],
+      },
+      {
         key: 'EmailInput',
         canHaveAnswer: true,
         name: intl.formatMessage({ id: 'email-input' }),
@@ -537,8 +554,12 @@ class Toolbar extends React.Component {
     if (item.canHaveDenonimator) {
       elementOptions.canHaveDenonimator = item.canHaveDenonimator;
     }
+    if (item.canHaveDynamicInputOptions) {
+      elementOptions.canHaveDynamicInputOptions = item.canHaveDynamicInputOptions;
+    }
 
     elementOptions.denominators = item.denominators;
+    elementOptions.dynamicInputOptions = item.dynamicInputOptions;
 
     elementOptions.canHavePageBreakBefore =
       item.canHavePageBreakBefore !== false;

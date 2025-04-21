@@ -84,6 +84,8 @@ class ReactForm extends React.Component {
       $item.value = ref.state.img;
     } else if (item.element === 'TableInput') {
       $item.value = ref.state.tableData;
+    } else if (item.element === 'DynamicMultiInput') {
+      $item.value = ref.state.dataList;
     } else if (item.element === 'FileUpload') {
       $item.value = ref.state.fileUpload;
     } else if (item.element === 'MultiFileUpload') {
@@ -455,6 +457,7 @@ class ReactForm extends React.Component {
           case 'DynamicInput':
           case 'AmountInput':
           case 'DocumentSelect':
+          case 'DynamicMultiInput':
           case 'TableInput':
           case 'EmailInput':
           case 'PhoneNumber':

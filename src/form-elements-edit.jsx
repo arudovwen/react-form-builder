@@ -16,6 +16,7 @@ import ID from './UUID';
 import IntlMessages from './language-provider/IntlMessages';
 import ApiExample from './ApiExample';
 import TableInputColumn from './TableInputColumns';
+import DynamicInputOptionList from './DynamicInputOptions';
 
 const toolbar = {
   options: ['inline', 'list', 'textAlign', 'fontSize', 'link', 'history'],
@@ -949,6 +950,22 @@ export default class FormElementsEdit extends React.Component {
                 value={this.props.element.denominators || []}
                 onChange={(newValues) => {
                   this.editElementProp(this, 'denominators', newValues);
+                }}
+              />
+            </div>
+          </div>
+        )}
+         {this.props.element.hasOwnProperty('canHaveDynamicInputOptions') && (
+          <div className="">
+            <div className="form-group">
+              <label className="control-label text-13" htmlFor="documentId">
+                Add Inputs Key/Label
+              </label>
+              <DynamicInputOptionList
+
+                initialFields={this.props.element.dynamicInputOptions}
+                onChange={(newValues) => {
+                  this.editElementProp(this, 'dynamicInputOptions', newValues);
                 }}
               />
             </div>

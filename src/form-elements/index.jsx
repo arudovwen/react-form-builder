@@ -20,6 +20,7 @@ import { getExtensionFromMimeType } from '../utils/getExt';
 import ImageViewer from '../ImageViewer';
 import TableInputElement from '../TableInputElement';
 import UniversalFileViewer from '../DocumentViewer';
+import DynamicInputList from '../DynamicInput';
 
 const FormElements = {};
 
@@ -772,6 +773,62 @@ class TableInput extends React.Component {
             }}
             denominators={denominators}
             defaultValue={tempDefaultValue}
+            readOnly={this.props.read_only}
+          />
+        </div>
+      </div>
+    );
+  }
+}
+
+class DynamicMultiInput extends React.Component {
+  constructor(props) {
+    super(props);
+    this.inputField = React.createRef();
+    this.state = {
+      dataList: this.props.defaultValue || [],
+    };
+  }
+
+  render() {
+    const props = {};
+    props.type = 'text';
+    props.className = 'form-control';
+    props.name = this.props.data.field_name;
+    let tempDefaultValue = [];
+
+    const { dynamicInputOptions } = this.props.data;
+    if (this.props.mutable) {
+      props.defaultValue = this.props.defaultValue;
+      props.ref = this.inputField;
+    }
+
+    let baseClasses = 'SortableItem rfb-item';
+    if (this.props.data.pageBreakBefore) {
+      baseClasses += ' alwaysbreak';
+    }
+
+    if (this.props.read_only) {
+      props.disabled = 'disabled';
+    }
+
+    if (this.props.defaultValue) {
+      tempDefaultValue = this.props.defaultValue || [];
+    }
+    //  async function validateInput(){
+
+    //  }
+    return (
+      <div style={{ ...this.props.style }} className={baseClasses}>
+        <ComponentHeader {...this.props} />
+        <div className="form-group">
+          <ComponentLabel {...this.props} />
+          <DynamicInputList
+            getValues={(data) => {
+              this.setState({ dataList: data });
+            }}
+            initialFields={dynamicInputOptions || []}
+            tempDefaultValue={tempDefaultValue}
             readOnly={this.props.read_only}
           />
         </div>
@@ -2281,6 +2338,7 @@ FormElements.DynamicInput = DynamicInput;
 FormElements.AmountInput = AmountInput;
 FormElements.DocumentSelect = DocumentSelect;
 FormElements.TableInput = TableInput;
+FormElements.DynamicMultiInput = DynamicMultiInput;
 FormElements.MultiFileUpload = MultiFileUpload;
 FormElements.PasswordInput = PasswordInput;
 FormElements.EmailInput = EmailInput;

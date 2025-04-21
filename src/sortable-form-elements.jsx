@@ -6,7 +6,7 @@ import { FieldSet } from './fieldset';
 import CustomElement from './form-elements/custom-element';
 
 const {
-  Header, Paragraph, Label, LineBreak, TextInput, DynamicInput, AmountInput, DocumentSelect, TableInput, PasswordInput, MultiFileUpload, EmailInput, PhoneNumber, NumberInput, TextArea, Dropdown, SmartAdaptorDropdown, Checkboxes,
+  Header, Paragraph, Label, LineBreak, TextInput, DynamicInput, AmountInput, DocumentSelect, DynamicMultiInput, TableInput, PasswordInput, MultiFileUpload, EmailInput, PhoneNumber, NumberInput, TextArea, Dropdown, SmartAdaptorDropdown, Checkboxes,
   DatePicker, RadioButtons, Image, Rating, Tags, Signature, HyperLink, Download, Camera, Range, FileUpload,
 } = BaseFormElements;
 
@@ -20,6 +20,7 @@ FormElements.TextInput = SortableElement(TextInput);
 FormElements.DynamicInput = SortableElement(DynamicInput);
 FormElements.AmountInput = SortableElement(AmountInput);
 FormElements.DocumentSelect = SortableElement(DocumentSelect);
+FormElements.DynamicMultiInput = SortableElement(DynamicMultiInput);
 FormElements.TableInput = SortableElement(TableInput);
 FormElements.PasswordInput = SortableElement(PasswordInput);
 FormElements.MultiFileUpload = SortableElement(MultiFileUpload);

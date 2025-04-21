@@ -56,6 +56,7 @@
   "paragraph" : "Paragrafo",
   "line-break" : "Linea Interruzione",
   "dropdown" : "Dropdown",
+  "smartAdaptorDropdown" : "Dropdown SmartAdaptor",
   "tags": "Tags",
   "checkboxes" : "Checkboxes",
   "multiple-choice":"Scelta multipla",

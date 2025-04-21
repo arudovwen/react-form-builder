@@ -6,7 +6,7 @@ import { FieldSet } from './fieldset';
 import CustomElement from './form-elements/custom-element';
 
 const {
-  Header, Paragraph, Label, LineBreak, TextInput, DynamicInput, DocumentSelect, EmailInput, PhoneNumber, NumberInput, TextArea, Dropdown, Checkboxes,
+  Header, Paragraph, Label, LineBreak, TextInput, DynamicInput, AmountInput, DocumentSelect, TableInput, PasswordInput, MultiFileUpload, EmailInput, PhoneNumber, NumberInput, TextArea, Dropdown, SmartAdaptorDropdown, Checkboxes,
   DatePicker, RadioButtons, Image, Rating, Tags, Signature, HyperLink, Download, Camera, Range, FileUpload,
 } = BaseFormElements;
 
@@ -18,12 +18,17 @@ FormElements.Label = SortableElement(Label);
 FormElements.LineBreak = SortableElement(LineBreak);
 FormElements.TextInput = SortableElement(TextInput);
 FormElements.DynamicInput = SortableElement(DynamicInput);
+FormElements.AmountInput = SortableElement(AmountInput);
 FormElements.DocumentSelect = SortableElement(DocumentSelect);
+FormElements.TableInput = SortableElement(TableInput);
+FormElements.PasswordInput = SortableElement(PasswordInput);
+FormElements.MultiFileUpload = SortableElement(MultiFileUpload);
 FormElements.EmailInput = SortableElement(EmailInput);
 FormElements.PhoneNumber = SortableElement(PhoneNumber);
 FormElements.NumberInput = SortableElement(NumberInput);
 FormElements.TextArea = SortableElement(TextArea);
 FormElements.Dropdown = SortableElement(Dropdown);
+FormElements.SmartAdaptorDropdown = SortableElement(SmartAdaptorDropdown);
 FormElements.Signature = SortableElement(Signature);
 FormElements.Checkboxes = SortableElement(Checkboxes);
 FormElements.DatePicker = SortableElement(DatePicker);

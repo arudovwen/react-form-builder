@@ -9,6 +9,7 @@ type BaseElement = {
     | "Paragraph"
     | "Line Break"
     | "Dropdown"
+    | "SmartAdaptorDropdown"
     | "Tags"
     | "Checkboxes"
     | "Multiple Choice"

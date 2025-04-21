@@ -82,7 +82,11 @@ class ReactForm extends React.Component {
       $item.value = ref.state.value;
     } else if (item.element === 'Camera') {
       $item.value = ref.state.img;
+    } else if (item.element === 'TableInput') {
+      $item.value = ref.state.tableData;
     } else if (item.element === 'FileUpload') {
+      $item.value = ref.state.fileUpload;
+    } else if (item.element === 'MultiFileUpload') {
       $item.value = ref.state.fileUpload;
     } else if (ref && ref.inputField && ref.inputField.current) {
       $item = ReactDOM.findDOMNode(ref.inputField.current);
@@ -236,7 +240,7 @@ class ReactForm extends React.Component {
     }
   }
 
-  handleBlur(event) {
+  handleBlur() {
     // Call submit function on blur
     if (this.props.onBlur) {
       const { onBlur } = this.props;
@@ -245,7 +249,7 @@ class ReactForm extends React.Component {
     }
   }
 
-  handleChange(event) {
+  handleChange() {
     // Call submit function on change
     if (this.props.onChange) {
       const { onChange } = this.props;
@@ -449,12 +453,17 @@ class ReactForm extends React.Component {
         switch (item.element) {
           case 'TextInput':
           case 'DynamicInput':
+          case 'AmountInput':
           case 'DocumentSelect':
+          case 'TableInput':
           case 'EmailInput':
           case 'PhoneNumber':
           case 'NumberInput':
+          case 'PasswordInput':
+          case 'MultiFileUpload':
           case 'TextArea':
           case 'Dropdown':
+          case 'SmartAdaptorDropdown':
           case 'DatePicker':
           case 'RadioButtons':
           case 'Rating':

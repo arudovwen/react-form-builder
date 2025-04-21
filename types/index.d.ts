@@ -13,18 +13,16 @@ type BaseElement = {
     | "Checkboxes"
     | "Multiple Choice"
     | "Text Input"
-    | "Dynamic Input"
     | "Number Input"
     | "Multi-line Input"
     | "Two Column Row"
     | "Three Column Row"
-    | "Multi Column Row"
+    | "Four Column Row"
     | "Image"
     | "Rating"
     | "Date"
     | "Signature"
     | "Web site"
-    | "Fieldset"
     | "File Attachment"
     | "Range"
     | "Camera";
@@ -122,7 +120,6 @@ export type ToolbarItem = {
 export interface FormBuilderProps {
   toolbarItems?: ToolbarItem[];
   files?: any[];
-  locale?: string;
   url?: string;
   showCorrectColumn?: boolean;
   show_description?: boolean;
@@ -130,14 +127,11 @@ export interface FormBuilderProps {
   onPost?: (data: FormBuilderPostData) => void;
   saveUrl?: string;
   saveAlways?: boolean;
-  editMode?: boolean;
-  renderEditForm?: (props: BaseElement) => React.ReactNode;
 }
 
 export class ReactFormBuilder extends React.Component<FormBuilderProps> {}
 
 export interface FormGeneratorOnSubmitParams {
-  id: number;
   name: string;
   custom_name: string;
   value: string | string[];
@@ -147,25 +141,19 @@ export interface FormGeneratorProps {
   form_action: string;
   form_method: string;
   action_name?: string;
-  onBlur?: (info: FormGeneratorOnSubmitParams[]) => void;
   onSubmit?: (info: FormGeneratorOnSubmitParams[]) => void;
-  onChange?: (info: FormGeneratorOnSubmitParams[]) => void;
   data: any[];
   back_action?: string;
   back_name?: string;
-  locale?: string;
   task_id?: number;
   answer_data?: any[];
   authenticity_token?: string;
   hide_actions?: boolean;
   skip_validations?: boolean;
-  option_key_value?: 'key' | 'value';
-  download_path?: string;
   display_short?: boolean;
   read_only?: boolean;
   // eslint-disable-next-line no-undef
   variables?: Record<any, any>;
-  submitButton?: JSX.Element;
 }
 
 export class ReactFormGenerator extends React.Component<FormGeneratorProps> {}
@@ -174,12 +162,4 @@ export type ActionType = "load" | "updateOrder" | "delete";
 
 export class ElementStore {
   static dispatch: (type: ActionType, data: any) => void;
-}
-
-export class Registry {
-  static register: (name: string, component: React.ReactNode) => void;
-
-  static list: () => string[];
-
-  static get: (name: string) => React.ReactNode;
 }

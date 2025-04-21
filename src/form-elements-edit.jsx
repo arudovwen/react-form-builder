@@ -15,6 +15,7 @@ import { get } from './stores/requests';
 import ID from './UUID';
 import IntlMessages from './language-provider/IntlMessages';
 import ApiExample from './ApiExample';
+import TableInputColumn from './TableInputColumns';
 
 const toolbar = {
   options: ['inline', 'list', 'textAlign', 'fontSize', 'link', 'history'],
@@ -41,29 +42,32 @@ export default class FormElementsEdit extends React.Component {
   getDocuments = async () => {
     try {
       const token = window.localStorage.getItem('token');
-      const userData = window.localStorage.getItem('userData');
+      const localData = window.localStorage.getItem('userData');
+      const userData = localData ? JSON.parse(localData) : null;
+      const LoginInfo = window.localStorage.getItem('LoginInfo');
+      const loginData = LoginInfo ? JSON.parse(LoginInfo) : null;
       this.setState({ fileLoading: true });
       const query = {
         Page: 1,
         Page_Size: 15,
         count: 100000,
         documentType: 0,
-        organizationId: userData?.organizationId ?? 'a9d0b5de-c51b-4e6a-a003-4f75e46d9ac7',
-
+        organizationId: userData?.id ?? 'a9d0b5de-c51b-4e6a-a003-4f75e46d9ac7',
+        documentTabs: 2,
       };
       const config = {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       };
-      const response = await axios.post(
-        'https://api.dev.document.kusala.com.ng/api/v1/documentmanagement/get-all-documents-main', query, config,
-      );
+      // a4368688-3294-412e-a516-7e1bde2c32a6
+      const url = `https://api.dev.document.kusala.com.ng/api/v1/documentmanagement/get-documents-inbox?email=${loginData?.email}`;
+      const response = await axios.post(url, query, config);
       if (response.status === 200) {
         this.setState({
-          documents: response.data.results?.map((i) => ({
+          documents: response.data.data?.map((i) => ({
             label: i?.title,
-            value: i?.documentId,
+            value: i?.documentMainId,
           })),
         });
       }
@@ -77,10 +81,19 @@ export default class FormElementsEdit extends React.Component {
   }
 
   editElementProp(elemProperty, targProperty, e) {
-    // elemProperty could be content or label
-    // targProperty could be value or checked
+    // console.log(elemProperty);
+    // console.log(targProperty);
+    // console.log(e);
+
     const this_element = this.state.element;
-    this_element[elemProperty] = e.target[targProperty];
+    console.log(this_element);
+    // Check if e is an event or direct value
+    if (e && e.target) {
+      this_element[elemProperty] = e.target[targProperty];
+    } else {
+      // Handle case where e is the direct value (like from TableInputColumn)
+      this_element[targProperty] = e;
+    }
 
     this.setState(
       {
@@ -159,12 +172,11 @@ export default class FormElementsEdit extends React.Component {
     }
   }
 
- componentDidMount() {
-  this.getDocuments();
- }
+  componentDidMount() {
+    this.getDocuments();
+  }
 
   render() {
-    console.log(this.state);
     if (this.state.dirty) {
       this.props.element.dirty = true;
     }
@@ -210,15 +222,26 @@ export default class FormElementsEdit extends React.Component {
     )
       ? this.props.element.pageBreakBefore
       : false;
-    const this_checked_alternate_form = this.props.element.hasOwnProperty(
-      'alternateForm',
+
+    const this_checked_toggle_password = this.props.element.hasOwnProperty(
+      'togglePassword',
+    ) ? this.props.element.togglePassword
+    : false;
+
+    const this_checked_toggle_negative = this.props.element.hasOwnProperty(
+      'toggleNegative',
     )
-      ? this.props.element.alternateForm
+      ? this.props.element.toggleNegative
       : false;
+    // const this_checked_alternate_form = this.props.element.hasOwnProperty(
+    //   'alternateForm',
+    // )
+    //   ? this.props.element.alternateForm
+    //   : false;
 
     const {
       canHavePageBreakBefore,
-      canHaveAlternateForm,
+      // canHaveAlternateForm,
       canHaveDisplayHorizontal,
       canHaveOptionCorrect,
       canHaveOptionValue,
@@ -242,10 +265,7 @@ export default class FormElementsEdit extends React.Component {
     if (this.props.element.hasOwnProperty('label')) {
       editorState = this.convertFromHTML(this.props.element.label);
     }
-    console.log(
-      '🚀 ~ FormElementsEdit ~ render ~ this.props.element:',
-      this.props.element,
-    );
+
     return (
       <div>
         <div className="clearfix">
@@ -746,6 +766,48 @@ export default class FormElementsEdit extends React.Component {
             </div>
           </div>
         )}
+        {this.props.element.hasOwnProperty('canTogglePassword') && (
+          <div className="form-group">
+            <div className="custom-control custom-checkbox">
+              <input
+                id="toggle-password"
+                className="custom-control-input"
+                type="checkbox"
+                checked={this_checked_toggle_password}
+                value={true}
+                onChange={this.editElementProp.bind(
+                  this,
+                  'togglePassword',
+                  'checked',
+                )}
+              />
+              <label className="custom-control-label" htmlFor="toggle-password">
+                Can Toggle Password
+              </label>
+            </div>
+          </div>
+        )}
+         {this.props.element.hasOwnProperty('canToggleNegative') && (
+          <div className="form-group">
+            <div className="custom-control custom-checkbox">
+              <input
+                id="toggle-negative"
+                className="custom-control-input"
+                type="checkbox"
+                checked={this_checked_toggle_negative}
+                value={true}
+                onChange={this.editElementProp.bind(
+                  this,
+                  'toggleNegative',
+                  'checked',
+                )}
+              />
+              <label className="custom-control-label" htmlFor="toggle-negative">
+                Can Allow Negative
+              </label>
+            </div>
+          </div>
+        )}
         {this.props.element.hasOwnProperty('canMakeApiValidation') && (
           <div className="">
             <div className="mb-4">
@@ -764,6 +826,18 @@ export default class FormElementsEdit extends React.Component {
               />
             </div>
             <div className="form-group">
+              <label className="control-label text-13" htmlFor="url">
+                File Retrieval Api Url (optional)
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                defaultValue={this.props.element.fileUrl}
+                onBlur={this.updateElement.bind(this)}
+                onChange={this.editElementProp.bind(this, 'fileUrl', 'value')}
+              />
+            </div>
+            <div className="form-group">
               <label className="control-label text-13" htmlFor="method">
                 Method
               </label>
@@ -779,7 +853,26 @@ export default class FormElementsEdit extends React.Component {
               </select>
             </div>
             <div className="form-group">
-              <label className="control-label text-13" htmlFor="url">
+              <label className="control-label text-13" htmlFor="responseType">
+                Response Type
+              </label>
+
+              <select
+                className="form-control"
+                defaultValue={this.props.element.responseType}
+                onBlur={this.updateElement.bind(this)}
+                onChange={this.editElementProp.bind(
+                  this,
+                  'responseType',
+                  'value',
+                )}
+              >
+                <option value="string">String</option>
+                <option value="object">Object</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="control-label text-13" htmlFor="apiKey">
                 <span>
                   {' '}
                   Authorization Key{' '}
@@ -794,6 +887,7 @@ export default class FormElementsEdit extends React.Component {
                 onChange={this.editElementProp.bind(this, 'apiKey', 'value')}
               />
             </div>
+
             {/* <div className="form-group">
               <label className="control-label text-13" htmlFor="apiResponse">
                 Api Response
@@ -819,10 +913,11 @@ export default class FormElementsEdit extends React.Component {
               <label className="control-label text-13" htmlFor="documentId">
                 Choose a document
               </label>
+
               <select
                 id="documentId"
                 className="form-control"
-                defaultValue={this.props.element.documentId}
+                value={this.props.element.documentId}
                 onBlur={this.updateElement.bind(this)}
                 onChange={this.editElementProp.bind(
                   this,
@@ -830,13 +925,32 @@ export default class FormElementsEdit extends React.Component {
                   'value',
                 )}
               >
-                <option value={null} disabled>{this.state.fileLoading ? 'Fetching documents...' : 'Select document'}</option>
+                <option value={null}>
+                  {this.state.fileLoading
+                    ? 'Fetching documents...'
+                    : 'Select document'}
+                </option>
                 {this.state.documents?.map((item) => (
                   <option key={item.value} value={JSON.stringify(item)}>
                     {item.label}
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+        )}
+        {this.props.element.hasOwnProperty('canHaveDenonimator') && (
+          <div className="">
+            <div className="form-group">
+              {/* <label className="control-label text-13" htmlFor="documentId">
+                Add Denominator
+              </label> */}
+              <TableInputColumn
+                value={this.props.element.denominators || []}
+                onChange={(newValues) => {
+                  this.editElementProp(this, 'denominators', newValues);
+                }}
+              />
             </div>
           </div>
         )}

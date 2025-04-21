@@ -68,6 +68,7 @@ class Toolbar extends React.Component {
   static _defaultItemOptions(element, intl) {
     switch (element) {
       case 'Dropdown':
+      case 'SmartAdaptorDropdown':
         return [
           {
             value: 'place_holder_option_1',
@@ -183,6 +184,15 @@ class Toolbar extends React.Component {
         options: [],
       },
       {
+        key: 'SmartAdaptorDropdown',
+        canHaveAnswer: true,
+        name: intl.formatMessage({ id: 'smartAdaptorDropdown' }),
+        icon: 'far fa-caret-square-down',
+        label: intl.formatMessage({ id: 'place-holder-label' }),
+        field_name: 'smartadaptor_dropdown_',
+        options: [],
+      },
+      {
         key: 'Tags',
         canHaveAnswer: true,
         name: intl.formatMessage({ id: 'tags' }),
@@ -218,6 +228,16 @@ class Toolbar extends React.Component {
         field_name: 'text_input_',
       },
       {
+        key: 'AmountInput',
+        canHaveAnswer: true,
+        name: 'Amount Input',
+        label: 'Amount',
+        icon: 'fas fa-dollar-sign',
+        field_name: 'amount_input_',
+        canToggleNegative: true,
+        toggleNegative: false,
+      },
+      {
         key: 'DynamicInput',
         canHaveAnswer: true,
         name: 'Validation Input',
@@ -229,6 +249,18 @@ class Toolbar extends React.Component {
         maxLength: null,
       },
       {
+        key: 'PasswordInput',
+        canHaveAnswer: true,
+        name: 'Password Input',
+        label: 'Password Input',
+        icon: 'fas fa-lock',
+        field_name: 'password_input_',
+        canHaveMaxLength: true,
+        canTogglePassword: true,
+        togglePassword: true,
+        maxLength: null,
+      },
+      {
         key: 'DocumentSelect',
         canHaveAnswer: false,
         name: 'Document Select',
@@ -236,7 +268,17 @@ class Toolbar extends React.Component {
         icon: 'far fa-caret-square-down',
         field_name: 'document_select_',
         canSelectDocuments: true,
-
+        documentId: null,
+      },
+      {
+        key: 'TableInput',
+        canHaveAnswer: false,
+        name: 'Table Input',
+        label: 'Table Input',
+        icon: 'far fa-caret-square-down',
+        field_name: 'table_input_',
+        canHaveDenonimator: true,
+        denominators: null,
       },
       {
         key: 'EmailInput',
@@ -253,6 +295,20 @@ class Toolbar extends React.Component {
         label: intl.formatMessage({ id: 'place-holder-label' }),
         icon: 'fas fa-plus',
         field_name: 'number_input_',
+      },
+      {
+        key: 'FileUpload',
+        name: intl.formatMessage({ id: 'file-upload' }),
+        icon: 'fas fa-file',
+        label: intl.formatMessage({ id: 'place-holder-label' }),
+        field_name: 'file_upload_',
+      },
+      {
+        key: 'MultiFileUpload',
+        name: 'Multi File Upload',
+        icon: 'fas fa-file',
+        label: 'Multi File Upload',
+        field_name: 'multi_file_upload_',
       },
       {
         key: 'PhoneNumber',
@@ -354,13 +410,7 @@ class Toolbar extends React.Component {
       //   label: intl.formatMessage({ id: 'place-holder-label' }),
       //   field_name: 'camera_',
       // },
-      {
-        key: 'FileUpload',
-        name: intl.formatMessage({ id: 'file-upload' }),
-        icon: 'fas fa-file',
-        label: intl.formatMessage({ id: 'place-holder-label' }),
-        field_name: 'file_upload_',
-      },
+
       {
         key: 'TwoColumnRow',
         canHaveAnswer: false,
@@ -449,7 +499,9 @@ class Toolbar extends React.Component {
     if (item.canHaveAnswer) {
       elementOptions.canHaveAnswer = item.canHaveAnswer;
     }
-
+    if (item.canToggleNegative) {
+      elementOptions.canToggleNegative = item.canToggleNegative;
+    }
     if (item.canReadOnly) {
       elementOptions.readOnly = false;
     }
@@ -473,12 +525,21 @@ class Toolbar extends React.Component {
     if (item.canHaveMaxLength) {
       elementOptions.canHaveMaxLength = item.canHaveMaxLength;
     }
+    if (item.canTogglePassword) {
+      elementOptions.canTogglePassword = item.canTogglePassword;
+    }
     if (item.canMakeApiValidation) {
       elementOptions.canMakeApiValidation = item.canMakeApiValidation;
     }
     if (item.canSelectDocuments) {
       elementOptions.canSelectDocuments = item.canSelectDocuments;
     }
+    if (item.canHaveDenonimator) {
+      elementOptions.canHaveDenonimator = item.canHaveDenonimator;
+    }
+
+    elementOptions.denominators = item.denominators;
+
     elementOptions.canHavePageBreakBefore =
       item.canHavePageBreakBefore !== false;
     elementOptions.canHaveAlternateForm = item.canHaveAlternateForm !== false;

@@ -1,0 +1,18 @@
+/* src/index.css or src/tailwind.css */
+
+/* Import Tailwind’s base, components, and utilities */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.add-file-btn {
+  background: transparent;
+  font-weight: 600;
+  border: none;
+  outline: none;
+  border-radius: 6px;
+}
+
+.loaded_file {
+  background: #efefef4d !important;
+}

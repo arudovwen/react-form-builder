@@ -23,17 +23,18 @@ class ReactForm extends React.Component {
 
   answerData;
 
-  constructor(props) {
-    super(props);
-    this.answerData = this._convert(props.answer_data);
-    this.emitter = new EventEmitter();
-    this.getDataById = this.getDataById.bind(this);
+ constructor(props) {
+  super(props);
 
-    // Bind handleBlur and handleChange methods
-    this.handleBlur = this.handleBlur.bind(this);
-    this.handleChange = this.handleChange.bind(this);
-    this.handleSubmit = this.handleSubmit.bind(this);
-  }
+  this.answerData = this._convert(props.answer_data) || {}; // holds current values
+
+  this.emitter = new EventEmitter();
+  this.getDataById = this.getDataById.bind(this);
+
+  this.handleBlur = this.handleBlur.bind(this);
+  this.handleChange = this.handleChange.bind(this);
+  this.handleSubmit = this.handleSubmit.bind(this);
+}
 
   _convert(answers) {
     if (Array.isArray(answers)) {
@@ -84,7 +85,14 @@ class ReactForm extends React.Component {
       $item.value = ref.state.img;
     } else if (item.element === 'TableInput') {
       $item.value = ref.state.tableData;
-    } else if (item.element === 'DynamicMultiInput') {
+    } else if (item.element === 'RadioButton') {
+      $item.value = ref.state.selectedValue;
+    } else if (
+      item.element === 'DynamicMultiInput' || item.element === 'DataGridInput' ||
+      item.element === 'CascadeSelect' ||
+      item.element === 'CustomDatePicker' ||
+      item.element === 'CustomSelect'
+    ) {
       $item.value = ref.state.dataList;
     } else if (item.element === 'FileUpload') {
       $item.value = ref.state.fileUpload;
@@ -135,6 +143,7 @@ class ReactForm extends React.Component {
 
   _isInvalid(item) {
     let invalid = false;
+
     if (item.required === true) {
       const ref = this.inputs[item.field_name];
       if (item.element === 'Checkboxes' || item.element === 'RadioButtons') {
@@ -153,8 +162,13 @@ class ReactForm extends React.Component {
         }
       } else {
         const $item = this._getItemValue(item, ref);
+
         if (item.element === 'Rating') {
           if ($item.value === 0) {
+            invalid = true;
+          }
+        } else if (item.element === 'MultiFileUpload') {
+          if ($item.value.some((dt) => !dt.fileData)) {
             invalid = true;
           }
         } else if (!$item.value || $item.value?.length < 1) {
@@ -242,23 +256,35 @@ class ReactForm extends React.Component {
     }
   }
 
-  handleBlur() {
-    // Call submit function on blur
-    if (this.props.onBlur) {
-      const { onBlur } = this.props;
-      const data = this._collectFormData(this.props.data, true);
-      onBlur(data);
-    }
+handleBlur() {
+  const data = this._collectFormData(this.props.data, true);
+
+  this.answerData = {};
+  data.forEach(item => {
+    this.answerData[item.name] = item.value;
+  });
+
+  if (this.props.onBlur) {
+    this.props.onBlur(data);
+  }
+}
+
+handleChange() {
+  const data = this._collectFormData(this.props.data, false);
+
+  // Always update latest answerData
+  this.answerData = {};
+  data.forEach(item => {
+    this.answerData[item.name] = item.value;
+  });
+
+  if (this.props.onChange) {
+    this.props.onChange(data);
   }
 
-  handleChange() {
-    // Call submit function on change
-    if (this.props.onChange) {
-      const { onChange } = this.props;
-      const data = this._collectFormData(this.props.data, false);
-      onChange(data);
-    }
-  }
+  // Force update so fields get new props
+  this.forceUpdate();
+}
 
   validateForm() {
     const errors = [];
@@ -303,10 +329,12 @@ class ReactForm extends React.Component {
         const ref = this.inputs[item.field_name];
         const phoneValue = this._getItemValue(item, ref).value;
         if (phoneValue) {
-          const validatePhone = (phone) => phone.match(
-              // eslint-disable-next-line no-useless-escape
-              /^[+]?(1\-|1\s|1|\d{3}\-|\d{3}\s|)?((\(\d{3}\))|\d{3})(\-|\s)?(\d{3})(\-|\s)?(\d{4})$/g,
-            );
+          // const validatePhone = (phone) => phone.match(
+          //     // eslint-disable-next-line no-useless-escape
+          //     /^[+]?(1\-|1\s|1|\d{3}\-|\d{3}\s|)?((\(\d{3}\))|\d{3})(\-|\s)?(\d{3})(\-|\s)?(\d{4})$/g,
+          //   );
+          const validatePhone = (phone) => /^(\+)?([0-9]{1,4}[\s\-()]?){2,}$/.test(phone);
+
           const checkPhone = validatePhone(phoneValue);
           if (!checkPhone) {
             errors.push(
@@ -341,15 +369,18 @@ class ReactForm extends React.Component {
     }
     const Input = FormElements[item.element];
     return (
-      <Input
-        handleChange={this.handleChange}
-        ref={(c) => (this.inputs[item.field_name] = c)}
-        mutable={true}
-        key={`form_${item.id}`}
-        data={item}
-        read_only={this.props.read_only}
-        defaultValue={this._getDefaultValue(item)}
-      />
+
+  <Input
+    handleChange={this.handleChange}
+    ref={(c) => (this.inputs[item.field_name] = c)}
+    mutable={true}
+    key={`form_${item.id}`}
+    data={item}
+    read_only={this.props.read_only}
+    defaultValue={this._getDefaultValue(item)}
+    resultData={this.answerData} // ✅ always pass current values
+  />
+
     );
   }
 
@@ -395,6 +426,7 @@ class ReactForm extends React.Component {
         read_only={this.props.read_only}
         key={`form_${item.id}`}
         data={item}
+         resultData={this.answerData}
         {...inputProps}
       />
     );
@@ -431,7 +463,7 @@ class ReactForm extends React.Component {
 
   render() {
     let data_items = this.props.data;
-
+    console.log({ data_items });
     if (this.props.display_short) {
       data_items = this.props.data.filter((i) => i.alternateForm === true);
     }
@@ -439,7 +471,7 @@ class ReactForm extends React.Component {
     data_items.forEach((item) => {
       if (
         item &&
-        item.readOnly &&
+        item?.readOnly &&
         item.variableKey &&
         this.props.variables[item.variableKey]
       ) {
@@ -457,7 +489,11 @@ class ReactForm extends React.Component {
           case 'DynamicInput':
           case 'AmountInput':
           case 'DocumentSelect':
+          case 'CascadeSelect':
           case 'DynamicMultiInput':
+          case 'DataGridInput':
+          case 'CustomSelect':
+          case 'CustomDatepicker':
           case 'TableInput':
           case 'EmailInput':
           case 'PhoneNumber':
@@ -469,6 +505,7 @@ class ReactForm extends React.Component {
           case 'SmartAdaptorDropdown':
           case 'DatePicker':
           case 'RadioButtons':
+          case 'RadioButton':
           case 'Rating':
           case 'Tags':
           case 'Range':
@@ -487,7 +524,7 @@ class ReactForm extends React.Component {
             return (
               <Signature
                 ref={(c) => (this.inputs[item.field_name] = c)}
-                read_only={this.props.read_only || item.readOnly}
+                read_only={this.props.read_only || item?.readOnly}
                 mutable={true}
                 key={`form_${item.id}`}
                 data={item}
@@ -530,7 +567,7 @@ class ReactForm extends React.Component {
             return (
               <Camera
                 ref={(c) => (this.inputs[item.field_name] = c)}
-                read_only={this.props.read_only || item.readOnly}
+                read_only={this.props.read_only || item?.readOnly}
                 mutable={true}
                 key={`form_${item.id}`}
                 data={item}
@@ -541,7 +578,7 @@ class ReactForm extends React.Component {
             return (
               <FileUpload
                 ref={(c) => (this.inputs[item.field_name] = c)}
-                read_only={this.props.read_only || item.readOnly}
+                read_only={this.props.read_only || item?.readOnly}
                 mutable={true}
                 key={`form_${item.id}`}
                 data={item}

@@ -1,49 +1,70 @@
 /* eslint-disable no-undef */
 // eslint-disable-next-line max-classes-per-file
-import React from 'react';
-import Select from 'react-select';
-import SignaturePad from 'react-signature-canvas';
-import ReactBootstrapSlider from 'react-bootstrap-slider';
-import axios from 'axios';
-import debounce from 'debounce';
-import PropTypes from 'prop-types';
+import React from "react";
+import Select from "react-select";
+import SignaturePad from "react-signature-canvas";
+import ReactBootstrapSlider from "react-bootstrap-slider";
+import axios from "axios";
+import debounce from "debounce";
+import PropTypes from "prop-types";
 
-import CurrencyInput from 'react-currency-input-field';
-import StarRating from './star-rating';
-import DatePicker from './date-picker';
-import ComponentHeader from './component-header';
-import ComponentLabel from './component-label';
-import myxss from './myxss';
-import ErrorMessage from '../error-message';
-import SuccessMessage from '../success-message';
-import { getExtensionFromMimeType } from '../utils/getExt';
-import ImageViewer from '../ImageViewer';
-import TableInputElement from '../TableInputElement';
-import UniversalFileViewer from '../DocumentViewer';
-import DynamicInputList from '../DynamicInput';
+import CurrencyInput from "react-currency-input-field";
+import StarRating from "./star-rating";
+import DatePicker from "./date-picker";
+import ComponentHeader from "./component-header";
+import ComponentLabel from "./component-label";
+import myxss from "./myxss";
+import ErrorMessage from "../error-message";
+import SuccessMessage from "../success-message";
+import { getExtensionFromMimeType } from "../utils/getExt";
+import ImageViewer from "../ImageViewer";
+import TableInputElement from "../TableInputElement";
+import UniversalFileViewer from "../DocumentViewer";
+import DynamicInputList from "../DynamicInput";
+import DataGrid from "./DataGrid"
+import CustomSelectComponent from "./CustomSearchSelect";
+// import CustomDatePickerComponent from "./CutomDatePicker";
+import CascadeDropdown from "./cascade-dropdown";
 
 const FormElements = {};
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const defaultFileType =
+  "image, application/pdf, application/msword, " +
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document, " +
+  "application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, " +
+  "application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation";
 
 function isValidGuid(guid) {
   const guidPattern =
     /^[{]?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}[}]?$/;
   return guidPattern.test(guid);
 }
+const validateFile = (file, fileType) => {
+  if (file.size > MAX_FILE_SIZE) {
+    return "File size exceeds 5MB limit";
+  }
+
+  if (fileType && !file.type.match(fileType || defaultFileType)) {
+    return "Invalid file type";
+  }
+
+  return null;
+};
 
 class Header extends React.Component {
   render() {
     // const headerClasses = `dynamic-input ${this.props.data.element}-input`;
-    let classNames = 'static';
+    let classNames = "static";
     if (this.props.data.bold) {
-      classNames += ' bold';
+      classNames += " bold";
     }
     if (this.props.data.italic) {
-      classNames += ' italic';
+      classNames += " italic";
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -62,17 +83,17 @@ class Header extends React.Component {
 
 class Paragraph extends React.Component {
   render() {
-    let classNames = 'static';
+    let classNames = "static";
     if (this.props.data.bold) {
-      classNames += ' bold';
+      classNames += " bold";
     }
     if (this.props.data.italic) {
-      classNames += ' italic';
+      classNames += " italic";
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -91,17 +112,17 @@ class Paragraph extends React.Component {
 
 class Label extends React.Component {
   render() {
-    let classNames = 'static';
+    let classNames = "static";
     if (this.props.data.bold) {
-      classNames += ' bold';
+      classNames += " bold";
     }
     if (this.props.data.italic) {
-      classNames += ' italic';
+      classNames += " italic";
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -120,9 +141,9 @@ class Label extends React.Component {
 
 class LineBreak extends React.Component {
   render() {
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -141,10 +162,10 @@ class DynamicInput extends React.Component {
     this.submitBtnRef = React.createRef(); // Add a ref for the submit button
     // Use state for managing errorText, successText, and validating state
     this.state = {
-      errorText: '',
-      successText: '',
+      errorText: "",
+      successText: "",
       validating: false,
-      description: '',
+      description: "",
       objectFileData: [],
     };
 
@@ -161,28 +182,53 @@ class DynamicInput extends React.Component {
   }
 
   async getFileUrl(id) {
-    const { fileUrl } = this.props.data;
-    const tempFileUrl =
-      fileUrl ||
-      'https://qa-document-management.sterling.ng/api/v1/docs/preview';
-    const response = await axios.get(
-      `${tempFileUrl}/${id}?documentType=Others`,
-    );
-
-    if (response.status === 200 && response?.data?.data) {
-      return `data:image/jpeg;base64,${response?.data?.data?.blobString}`;
+    try {
+      const { fileUrl } = this.props.data;
+      const tempFileUrl =
+        fileUrl ||
+        "https://qa-document-management.sterling.ng/api/v1/docs/preview";
+      const { data, status } = await axios.get(
+        `${tempFileUrl}/${id}?documentType=Others`
+      );
+      if (status === 200 && data?.data?.blobString) {
+        return data.data.blobString;
+      }
+    } catch (error) {
+      console.error("Error fetching file URL:", error);
     }
-    return null;
+    return id;
+  }
+
+  async flattenFirstObjectInArray(obj) {
+    try {
+      const result = { ...obj };
+
+      Object.keys(obj).forEach((key) => {
+        if (
+          Array.isArray(obj[key]) &&
+          obj[key].length > 0 &&
+          typeof obj[key][0] === "object"
+        ) {
+          Object.assign(result, obj[key][0]); // Merge first object in array
+          delete result[key]; // Remove original array key
+        }
+      });
+
+      return result;
+    } catch (error) {
+      console.log(error);
+      return obj; // Return the original object if an error occurs
+    }
   }
 
   // Function to validate input using an API request
   // eslint-disable-next-line no-unused-vars
   async validateInput(value) {
     const { url, method, apiKey, responseType } = this.props.data;
-
+    // const imageItems = ['photograph', 'signature'];
     // Validate if URL is provided
     if (!url) {
-      this.setState({ errorText: 'Please add a valid API URL' });
+      this.setState({ errorText: "Please add a valid API URL" });
       return;
     }
 
@@ -191,48 +237,48 @@ class DynamicInput extends React.Component {
       this.setState({ validating: true });
 
       // Make the API call using the method provided (GET by default)
-      const { data, status } = await axios[method || 'get'](`${url}/${value}`, {
+      const { data, status } = await axios[method || "get"](`${url}/${value}`, {
         headers: { Authorization: apiKey },
       });
 
       if (status === 200) {
         if ((data?.data?.status || data?.status) === true) {
           this.setState({
-            successText: 'Validation success',
-            errorText: '',
+            successText: "Validation success",
+            errorText: "",
             description: data.data?.description || data?.description,
           });
-
+          console.log({ jfgjg: data.data?.description || data?.description });
           // Check if responseType is object and process the description
-          if (responseType === 'object') {
+          if (responseType === "object") {
             const ObjData = data.data?.description || data?.description;
-
+            const flattendObj = await this.flattenFirstObjectInArray(ObjData);
             // Map through the object and handle errors individually for each item
             const mappedData = await Promise.all(
-              Object.keys(ObjData).map(async (item) => {
+              Object.keys(flattendObj)?.map(async (item) => {
                 const newObj = {};
                 try {
-                  if (isValidGuid(ObjData[item])) {
-                    newObj[item] = await this.getFileUrl(ObjData[item]);
+                  if (isValidGuid(flattendObj[item])) {
+                    newObj[item] = await this.getFileUrl(flattendObj[item]);
                   } else {
-                    newObj[item] = ObjData[item];
+                    newObj[item] = flattendObj[item];
                   }
                 } catch (fileError) {
                   // Handle the error for each file fetch and continue
                   console.error(
                     `Error fetching file URL for ${item}:`,
-                    fileError,
+                    fileError
                   );
-                  newObj[item] = null; // Fallback to original value if error occurs
+                  newObj[item] = flattendObj[item]; // Fallback to original value if error occurs
                 }
                 return newObj;
-              }),
+              })
             );
 
             // After resolving all the promises, flatten the result
             const flattenedData = mappedData.reduce(
               (acc, obj) => ({ ...acc, ...obj }),
-              {},
+              {}
             );
 
             this.setState({
@@ -250,20 +296,21 @@ class DynamicInput extends React.Component {
             this.submitBtnRef.current.disabled = true; // Disable the submit button
           }
           this.setState({
-            errorText: 'Data not found!',
-            successText: '',
-            description: '',
+            errorText: "Data not found!",
+            successText: "",
+            description: "",
           });
         }
       }
     } catch (error) {
+      console.log(error);
       // Handle errors during API validation
       this.setState({
         errorText:
           error?.response?.data?.message ||
-          'Validation failed, please try again',
-        successText: '',
-        description: '',
+          "Validation failed, please try again",
+        successText: "",
+        description: "",
       });
 
       // Disable the submit button if an error occurs
@@ -279,39 +326,64 @@ class DynamicInput extends React.Component {
   // Handle input changes and invoke the debounced validation function
   handleChange = (event) => {
     const { value } = event.target;
-
-    this.debouncedValidateError(value);
+    const stringValue = this.getAllFieldValues(
+      this.props.data.mappedFields,
+      this.props.resultData
+    ).join("/");
+    console.log({ stringValue });
+    this.debouncedValidateError(`${value}/${stringValue}`);
   };
 
   // Handle validation errors, updating errorText in state
   handleError = (value) => {
     const { url } = this.props.data;
     if (!url) {
-      this.setState({ errorText: 'Please add a valid API URL' });
+      this.setState({ errorText: "Please add a valid API URL" });
       if (this.submitBtnRef.current) {
         this.submitBtnRef.current.disabled = true; // Disable the submit button if no URL
       }
     } else {
-      this.setState({ errorText: '' });
+      this.setState({ errorText: "" });
       if (this.submitBtnRef.current) {
         this.submitBtnRef.current.disabled = false; // Enable submit button if URL exists
       }
       this.debouncedValidateInput(value);
     }
   };
+  getAllFieldValues(data, values) {
+    if (!Array.isArray(data) || typeof values !== "object" || !values) {
+      return [];
+    }
+
+    let result = [];
+
+    for (const item of data) {
+      if (
+        item.field_name &&
+        values.hasOwnProperty(item.field_name) &&
+        values[item.field_name]
+      ) {
+        result.push(values[item.field_name]);
+      }
+    }
+
+    return result;
+  }
 
   render() {
-    const { data, mutable, defaultValue, read_only, style } = this.props;
-    const { field_name, maxLength, responseType } = data;
+    const { data, mutable, defaultValue, read_only, style, resultData } =
+      this.props;
+    const { field_name, maxLength, responseType, allowEdit, mappedFields } =
+      data;
 
     // Default props setup for the input field
     const props = {
-      type: 'text',
-      className: 'form-control',
+      type: "text",
+      className: "form-control",
       name: field_name,
-      disabled: read_only ? 'disabled' : undefined,
+      disabled: read_only && !allowEdit ? "disabled" : undefined,
       maxLength: maxLength || undefined,
-      responseType: responseType || 'string',
+      responseType: responseType || "string",
     };
 
     // If mutable, add defaultValue and ref
@@ -321,24 +393,71 @@ class DynamicInput extends React.Component {
     }
 
     // Base classes for the input container
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
     function addSpaceToUppercase(str) {
-      return str.replace(/([A-Z])/g, ' $1').trim();
+      return str.replace(/([A-Z])/g, " $1").trim();
     }
-    function isImage(value) {
-      if (!value) return false;
-      // Check if the value is a base64 encoded image
-      const base64Pattern = /^data:image\/(jpeg|png|gif|bmp|webp);base64,/i;
+  function isImage(value) {
+  if (!value || typeof value !== 'string') return false;
 
-      // Check if the value is a valid image URL (ends with image file extensions)
-      const urlPattern = /\.(jpeg|jpg|png|gif|bmp|webp)$/i;
+  // Matches data URLs for common image types
+  const base64DataUrlPattern = /^data:image\/(jpeg|jpg|png|gif|bmp|webp);base64,/i;
 
-      // Check if the value matches either of the patterns
-      return base64Pattern.test(value) || urlPattern.test(value);
-    }
+  // Matches raw base64 string for known image signatures
+  // JPEG usually starts with /9j/, PNG with iVBOR...
+  const rawBase64ImageHeaders = [
+    /^\/9j\//,               // JPEG
+    /^iVBOR/,                // PNG
+    /^R0lGOD/,               // GIF
+    /^Qk0/,                  // BMP
+    /^UklGR/,                // WebP
+  ];
+
+  // Matches raw base64 string of sufficient length (generic fallback)
+  const rawBase64Pattern = /^[A-Za-z0-9+/]{100,}={0,2}$/;
+
+  // Matches image file URLs ending with common extensions
+  const urlPattern = /\.(jpeg|jpg|png|gif|bmp|webp)(\?.*)?$/i;
+
+  // Check all patterns
+  return (
+    base64DataUrlPattern.test(value) ||
+    urlPattern.test(value) ||
+    rawBase64Pattern.test(value) ||
+    rawBase64ImageHeaders.some((pattern) => pattern.test(value))
+  );
+}
+function getImageDataUrl(rawBase64) {
+  if (!rawBase64 || typeof rawBase64 !== 'string') return null;
+
+  // Trim and take first few chars for detection
+  const header = rawBase64.substring(0, 10);
+
+  let mimeType = null;
+
+  if (header.startsWith('/9j/')) {
+    mimeType = 'image/jpeg';
+  } else if (header.startsWith('iVBOR')) {
+    mimeType = 'image/png';
+  } else if (header.startsWith('R0lGOD')) {
+    mimeType = 'image/gif';
+  } else if (header.startsWith('Qk')) {
+    mimeType = 'image/bmp';
+  } else if (header.startsWith('UklGR')) {
+    mimeType = 'image/webp';
+  }
+
+  if (mimeType) {
+    return `data:${mimeType};base64,${rawBase64}`;
+  } else {
+    console.warn('Unknown image type or invalid base64');
+    return rawBase64;
+  }
+}
+
 
     // https://api.dev.workflow.kusala.com.ng/api/v1/WorkFlows/validate
     //  https://qa-document-management.sterling.ng/api/v1/docs/preview/243bf8a6-7903-4a8e-bd2a-943558c58a69?documentType=Others
@@ -347,12 +466,12 @@ class DynamicInput extends React.Component {
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
-          <div className="d-flex align-items-center position-relative clearfix pr-6">
+          <div className="clearfix pr-6 d-flex align-items-center position-relative">
             <input {...props} onChange={this.handleChange} />
             {this.state.validating && (
               <div
-                className="spinner-border spinner-border-sm text-secondary position-absolute align-middle"
-                style={{ right: '16px' }}
+                className="align-middle spinner-border spinner-border-sm text-secondary position-absolute"
+                style={{ right: "16px" }}
                 role="status"
               >
                 <span className="sr-only">Validating...</span>
@@ -366,40 +485,39 @@ class DynamicInput extends React.Component {
           {this.state.successText && !this.state.description && (
             <SuccessMessage message={this.state.successText} />
           )}
-          {this.state.description && responseType === 'string' && (
-            <div style={{ marginTop: '6px' }}>
-              <span className="block text-capitalize text-14 font-weight-bold pt-1">
+          {this.state.description && responseType === "string" && (
+            <div style={{ marginTop: "6px" }}>
+              <span className="block pt-1 text-capitalize text-14 font-weight-bold">
                 {this.state.description}
               </span>
             </div>
           )}
-          {this.state.objectFileData && responseType === 'object' && (
+          {this.state.objectFileData && responseType === "object" && (
             <>
-              {Object.keys(this.state.objectFileData).map((item) => (
-                <div key={item} style={{ marginTop: '16px' }}>
-                  <label className="block text-capitalize text-14 font-weight-bold pt-1 form-label">
+              {Object.keys(this.state.objectFileData)?.map((item) => (
+                <div key={item} style={{ marginTop: "16px" }}>
+                  <label className="block pt-1 text-capitalize text-14 font-weight-bold form-label">
                     <span>{addSpaceToUppercase(item)} </span>
                   </label>
 
-                  {!(
-                    isImage(this.state.description[item]) ||
-                    isValidGuid(this.state.description[item])
-                  ) ? (
+                  {!isImage(this.state.objectFileData[item]) ? (
                     <div
                       className="form-control loaded_file"
-                      style={{ background: '#efefef4d' }}
+                      style={{ background: "#efefef4d" }}
                     >
-                      {this.state.objectFileData[item] || 'N/a'}
+                      {typeof this.state.objectFileData[item] !== "object"
+                        ? this.state.objectFileData[item]
+                        : "N/a"}
                     </div>
                   ) : (
                     <div className="">
                       {/* Show Guid - {getFileUrl(this.state.description[item])} */}
                       {this.state.objectFileData[item] ? (
                         <ImageViewer
-                          imageUrl={this.state.objectFileData[item]}
+                          imageUrl={getImageDataUrl(this.state.objectFileData[item])}
                         />
                       ) : (
-                        'No file found'
+                        "No file found"
                       )}
                     </div>
                   )}
@@ -417,9 +535,9 @@ class DocumentSelect extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      errorText: '',
-      successText: '',
-      description: '',
+      errorText: "",
+      successText: "",
+      description: "",
       fileLoading: false,
       documents: [],
       isSigned: false,
@@ -428,7 +546,7 @@ class DocumentSelect extends React.Component {
     };
     this.intervalId = null;
     this.requestId = new URLSearchParams(window.location.search).get(
-      'workflowId',
+      "workflowId"
     );
   }
 
@@ -440,7 +558,7 @@ class DocumentSelect extends React.Component {
     try {
       parsedDocumentId = documentId ? JSON.parse(documentId) : null;
     } catch (error) {
-      console.error('Invalid JSON in documentId:', error);
+      console.error("Invalid JSON in documentId:", error);
       return;
     }
 
@@ -469,11 +587,11 @@ class DocumentSelect extends React.Component {
 
   async checkDocument(id) {
     try {
-      const token = window.localStorage.getItem('token');
+      const token = window.localStorage.getItem("token");
       const tempUser = JSON.parse(
-        window.localStorage.getItem('LoginInfo') || '{}',
+        window.localStorage.getItem("LoginInfo") || "{}"
       );
-      const position = tempUser?.role ?? 'ed';
+      const position = tempUser?.role ?? "ed";
       this.setState({ fileLoading: true });
 
       const config = {
@@ -481,7 +599,7 @@ class DocumentSelect extends React.Component {
       };
       const response = await axios.get(
         `https://api.dev.document.kusala.com.ng/api/v1/DocumentSignature/position-signature-status?documentId=${id}&position=${position}&requestId=${this.requestId}&fromWorkflow=true`,
-        config,
+        config
       );
 
       if (response.status === 200) {
@@ -494,10 +612,10 @@ class DocumentSelect extends React.Component {
         }
       }
     } catch (error) {
-      console.error('Error checking document status:', error);
+      console.error("Error checking document status:", error);
       if (
         error.response.data.message ===
-        'No document signature for this position'
+        "No document signature for this position"
       ) {
         clearInterval(this.intervalId);
       }
@@ -509,7 +627,7 @@ class DocumentSelect extends React.Component {
   // eslint-disable-next-line consistent-return
   async getSignatures(id) {
     try {
-      const token = window.localStorage.getItem('token');
+      const token = window.localStorage.getItem("token");
 
       const config = {
         headers: { Authorization: `Bearer ${token}` },
@@ -517,51 +635,53 @@ class DocumentSelect extends React.Component {
 
       const response = await axios.get(
         `https://api.dev.document.kusala.com.ng/api/v1/DocumentSignature/get-signatures-request?documentId=${id}&requestId=${this.requestId}`,
-        config,
+        config
       );
 
       if (response.status === 200) {
         this.setState({ signatures: response.data?.data?.data || [] });
       }
     } catch (error) {
-      console.error('Error fetching signatures:', error);
+      console.error("Error fetching signatures:", error);
     }
   }
 
   isPathValid() {
     const { pathname } = window.location;
     const validPaths = [
-      '/forms/editor',
-      '/run/workflow/approve',
-      '/run/workflow/verdict',
-      '/request/process/approval',
-      '/request/process/verdict',
-      '/request/process/view',
-      '/request/process/rework',
+      "/forms/editor",
+      "/run/workflow/approve",
+      "/run/workflow/verdict",
+      "/request/process/approval",
+      "/request/process/verdict",
+      "/request/process/view",
+      "/request/process/rework",
     ];
 
     return (
       validPaths.some((path) => pathname?.toLowerCase()?.includes(path)) ||
-      pathname === '/'
+      pathname === "/"
     );
   }
 
   isApprovePath() {
     const { pathname } = window.location;
     const validApprovePaths = [
-      '/run/workflow/approve',
-      '/run/workflow/verdict',
-      '/request/process/approval',
-      '/request/process/verdict',
-      '/request/process/view',
-      '/request/process/rework',
+      "/run/workflow/approve",
+      "/run/workflow/verdict",
+      "/request/process/approval",
+      "/request/process/verdict",
+      "/request/process/view",
+      "/request/process/rework",
     ];
-    return validApprovePaths.some((path) => pathname?.toLowerCase()?.includes(path));
+    return validApprovePaths.some((path) =>
+      pathname?.toLowerCase()?.includes(path)
+    );
   }
 
   render() {
     const { data, mutable, defaultValue, read_only, style } = this.props;
-    const { field_name, documentId } = data;
+    const { field_name, documentId, allowEdit } = data;
     const {
       errorText,
       successText,
@@ -571,7 +691,7 @@ class DocumentSelect extends React.Component {
       signature,
     } = this.state;
     const tempUser = JSON.parse(
-      window.localStorage.getItem('LoginInfo') || '{}',
+      window.localStorage.getItem("LoginInfo") || "{}"
     );
     const position = tempUser?.role;
     const email = tempUser?.email;
@@ -579,13 +699,8 @@ class DocumentSelect extends React.Component {
 
     const parsedDocumentId = documentId ? JSON.parse(documentId) : {};
     const userCanSign = signatures.some(
-      (sig) => sig?.position?.toLowerCase() === position?.toLowerCase(),
+      (sig) => sig?.position?.toLowerCase() === position?.toLowerCase()
     );
-    console.log(
-      '🚀 ~ DocumentSelect ~ render ~ parsedDocumentId:',
-      parsedDocumentId,
-    );
-
     if (!this.isPathValid()) {
       return null;
     }
@@ -593,33 +708,33 @@ class DocumentSelect extends React.Component {
     //   return null;
     // }
     const inputProps = {
-      type: 'text',
-      className: 'form-control bg-transparent',
+      type: "text",
+      className: "form-control bg-transparent",
       name: field_name,
       defaultValue: mutable ? defaultValue : undefined,
-      disabled: read_only,
+      disabled: read_only && !allowEdit ? "disabled" : undefined,
     };
 
     return (
       <div
         style={style}
         className={`SortableItem rfb-item ${
-          data.pageBreakBefore ? 'alwaysbreak' : ''
+          data.pageBreakBefore ? "alwaysbreak" : ""
         }`}
       >
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
           <div
-            className="d-flex align-items-center position-relative clearfix pr-6"
-            style={{ columnGap: '12px' }}
+            className="clearfix pr-6 d-flex align-items-center position-relative"
+            style={{ columnGap: "12px" }}
           >
             {/* <input
               {...inputProps}
               value={parsedDocumentId?.label || ''}
               readOnly
             /> */}
-            <div {...inputProps}>{parsedDocumentId?.label || ''}</div>
+            <div {...inputProps}>{parsedDocumentId?.label || ""}</div>
             {!isSigned && userCanSign && (
               <a
                 target="_blank"
@@ -629,7 +744,7 @@ class DocumentSelect extends React.Component {
                 <button
                   type="button"
                   className="btn btn-sm btn-primary"
-                  style={{ padding: '10px 20px', borderRadius: '6px' }}
+                  style={{ padding: "10px 20px", borderRadius: "6px" }}
                   disabled={!parsedDocumentId?.value}
                 >
                   Sign
@@ -643,7 +758,7 @@ class DocumentSelect extends React.Component {
                 href={`https://kusala.com.ng/document/preview/read/${
                   parsedDocumentId?.value
                 }/${
-                  signature?.id ?? '043ff984-cf11-4507-81f8-93c8d9fd48ef'
+                  signature?.id ?? "043ff984-cf11-4507-81f8-93c8d9fd48ef"
                 }?email=${email}&type=form_signature&requestId=${
                   this.requestId
                 }`}
@@ -652,10 +767,10 @@ class DocumentSelect extends React.Component {
                   type="button"
                   className="btn btn-sm btn-success d-flex"
                   style={{
-                    padding: '10px 20px',
-                    borderRadius: '6px',
-                    alignItems: 'center',
-                    columnGap: '8px',
+                    padding: "10px 20px",
+                    borderRadius: "6px",
+                    alignItems: "center",
+                    columnGap: "8px",
                   }}
                 >
                   {isSigned ? (
@@ -663,9 +778,9 @@ class DocumentSelect extends React.Component {
                       Signed <i className="far fa-check-circle"></i>
                     </>
                   ) : (
-                    'View'
+                    "View"
                   )}
-                </button>{' '}
+                </button>{" "}
               </a>
             )}
           </div>
@@ -675,8 +790,8 @@ class DocumentSelect extends React.Component {
             <SuccessMessage message={successText} />
           )}
           {description && (
-            <div style={{ marginTop: '6px' }}>
-              <span className="block text-capitalize text-14 font-weight-bold pt-1">
+            <div style={{ marginTop: "6px" }}>
+              <span className="block pt-1 text-capitalize text-14 font-weight-bold">
                 {description}
               </span>
             </div>
@@ -695,21 +810,24 @@ class TextInput extends React.Component {
 
   render() {
     const props = {};
-    props.type = 'text';
-    props.className = 'form-control';
+    props.type = "text";
+    props.className = "form-control";
     props.name = this.props.data.field_name;
     if (this.props.mutable) {
       props.defaultValue = this.props.defaultValue;
       props.ref = this.inputField;
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
-    if (this.props.read_only) {
-      props.disabled = 'disabled';
+    if (
+      (this.props?.read_only || this.props.data?.isReadOnly) &&
+      !this.props.data?.allowEdit
+    ) {
+      props.disabled = "disabled";
     }
     //  async function validateInput(){
 
@@ -736,8 +854,8 @@ class TableInput extends React.Component {
 
   render() {
     const props = {};
-    props.type = 'text';
-    props.className = 'form-control';
+    props.type = "text";
+    props.className = "form-control";
     props.name = this.props.data.field_name;
     let tempDefaultValue = [];
 
@@ -747,13 +865,16 @@ class TableInput extends React.Component {
       props.ref = this.inputField;
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
-    if (this.props.read_only) {
-      props.disabled = 'disabled';
+    if (
+      (this.props?.read_only || this.props.data?.isReadOnly) &&
+      !this.props.data?.allowEdit
+    ) {
+      props.disabled = "disabled";
     }
 
     if (this.props.defaultValue) {
@@ -773,7 +894,10 @@ class TableInput extends React.Component {
             }}
             denominators={denominators}
             defaultValue={tempDefaultValue}
-            readOnly={this.props.read_only}
+            readOnly={
+              (this.props?.read_only || this.props.data?.isReadOnly) &&
+              !this.props.data?.allowEdit
+            }
           />
         </div>
       </div>
@@ -781,6 +905,193 @@ class TableInput extends React.Component {
   }
 }
 
+class CascadeSelect extends React.Component {
+  constructor(props) {
+    super(props);
+    this.inputField = React.createRef();
+    this.state = {
+      dataList: this.props.defaultValue || [],
+    };
+  }
+
+  render() {
+    const props = {};
+    props.type = "text";
+    props.className = "form-control";
+    props.name = this.props.data.field_name;
+    let tempDefaultValue = [];
+
+    const {
+      firstLabel,
+      secondLabel,
+      firstDropdownOptions,
+      secondDropdownOptions,
+    } = this.props.data;
+    if (this.props.mutable) {
+      props.defaultValue = this.props.defaultValue;
+      props.ref = this.inputField;
+    }
+
+    let baseClasses = "SortableItem rfb-item";
+    if (this.props.data.pageBreakBefore) {
+      baseClasses += " alwaysbreak";
+    }
+
+    if (
+      (this.props?.read_only || this.props.data?.isReadOnly) &&
+      !this.props.data?.allowEdit
+    ) {
+      props.disabled = "disabled";
+    }
+
+    if (this.props.defaultValue) {
+      tempDefaultValue = this.props.defaultValue || [];
+    }
+    //  async function validateInput(){
+
+    //  }
+    return (
+      <div style={{ ...this.props.style }} className={baseClasses}>
+        <ComponentHeader {...this.props} />
+        <div className="form-group">
+          <ComponentLabel {...this.props} />
+          <CascadeDropdown
+            secondDropdownOptions={secondDropdownOptions}
+            firstDropdownOptions={firstDropdownOptions}
+            defaultValue={tempDefaultValue}
+            readOnly={
+              (this.props?.read_only || this.props.data?.isReadOnly) &&
+              !this.props.data?.allowEdit
+            }
+            onGetValue={(value) => {
+              this.setState({ dataList: value });
+            }}
+            firstLabel={firstLabel}
+            secondLabel={secondLabel}
+          />
+        </div>
+      </div>
+    );
+  }
+}
+// class CustomDatePicker extends React.Component {
+//   constructor(props) {
+//     super(props);
+//     this.inputField = React.createRef();
+//     this.state = {
+//       dataList: this.props.defaultValue || [],
+//     };
+//   }
+
+//   render() {
+//     const props = {};
+//     props.type = "text";
+//     props.className = "form-control";
+//     props.name = this.props.data.field_name;
+//     let tempDefaultValue = new Date();
+
+//     if (this.props.mutable) {
+//       props.defaultValue = this.props.defaultValue;
+//       props.ref = this.inputField;
+//     }
+
+//     let baseClasses = "SortableItem rfb-item";
+//     if (this.props.data.pageBreakBefore) {
+//       baseClasses += " alwaysbreak";
+//     }
+
+//     if (
+//       (this.props.data?.isReadOnly || this.props?.read_only) &&
+//       !this.props.data?.allowEdit
+//     ) {
+//       props.disabled = "disabled";
+//     }
+
+//     if (this.props.defaultValue) {
+//       tempDefaultValue = this.props.defaultValue || new Date();
+//     }
+
+//     return (
+//       <div style={{ ...this.props.style }} className={baseClasses}>
+//         <ComponentHeader {...this.props} />
+//         <div className="form-group">
+//           <ComponentLabel {...this.props} />
+//           <CustomDatePickerComponent
+//             defaultValue={tempDefaultValue}
+//             readOnly={
+//               (this.props.data?.isReadOnly || this.props?.read_only) &&
+//               !this.props.data?.allowEdit
+//             }
+//             onGetValue={(value) => {
+//               this.setState({ dataList: value });
+//             }}
+//             dateFormat={this.props.data?.dateFormat || "dd/MM/yyyy"}
+//           />
+//         </div>
+//       </div>
+//     );
+//   }
+// }
+class CustomSelect extends React.Component {
+  constructor(props) {
+    super(props);
+    this.inputField = React.createRef();
+    this.state = {
+      dataList: this.props.defaultValue || [],
+    };
+  }
+
+  render() {
+    const props = {};
+    props.type = "text";
+    props.className = "form-control";
+    props.name = this.props.data.field_name;
+    let tempDefaultValue = [];
+
+    const { options } = this.props.data;
+    if (this.props.mutable) {
+      props.defaultValue = this.props.defaultValue;
+      props.ref = this.inputField;
+    }
+
+    let baseClasses = "SortableItem rfb-item";
+    if (this.props.data.pageBreakBefore) {
+      baseClasses += " alwaysbreak";
+    }
+
+    if (
+      (this.props?.read_only || this.props.data?.isReadOnly) &&
+      !this.props.data?.allowEdit
+    ) {
+      props.disabled = "disabled";
+    }
+
+    if (this.props.defaultValue) {
+      tempDefaultValue = this.props.defaultValue || [];
+    }
+
+    return (
+      <div style={{ ...this.props.style }} className={baseClasses}>
+        <ComponentHeader {...this.props} />
+        <div className="form-group">
+          <ComponentLabel {...this.props} />
+          <CustomSelectComponent
+            options={options}
+            defaultValue={tempDefaultValue}
+            readOnly={
+              (this.props?.read_only || this.props.data?.isReadOnly) &&
+              !this.props.data?.allowEdit
+            }
+            url={this.props.data?.optionsApiUrl}
+            onGetValue={(value) => {
+              this.setState({ dataList: value });
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+}
 class DynamicMultiInput extends React.Component {
   constructor(props) {
     super(props);
@@ -792,8 +1103,8 @@ class DynamicMultiInput extends React.Component {
 
   render() {
     const props = {};
-    props.type = 'text';
-    props.className = 'form-control';
+    props.type = "text";
+    props.className = "form-control";
     props.name = this.props.data.field_name;
     let tempDefaultValue = [];
 
@@ -803,13 +1114,16 @@ class DynamicMultiInput extends React.Component {
       props.ref = this.inputField;
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
-    if (this.props.read_only) {
-      props.disabled = 'disabled';
+    if (
+      (this.props?.read_only || this.props.data?.isReadOnly) &&
+      !this.props.data?.allowEdit
+    ) {
+      props.disabled = "disabled";
     }
 
     if (this.props.defaultValue) {
@@ -829,7 +1143,72 @@ class DynamicMultiInput extends React.Component {
             }}
             initialFields={dynamicInputOptions || []}
             tempDefaultValue={tempDefaultValue}
-            readOnly={this.props.read_only}
+            readOnly={
+              (this.props?.read_only || this.props.data?.isReadOnly) &&
+              !this.props.data?.allowEdit
+            }
+          />
+        </div>
+      </div>
+    );
+  }
+}
+
+class DataGridInput extends React.Component {
+  constructor(props) {
+    super(props);
+    this.inputField = React.createRef();
+    this.state = {
+      dataList: this.props.defaultValue || [],
+    };
+  }
+
+  render() {
+    const props = {};
+    props.type = "text";
+    props.className = "form-control";
+    props.name = this.props.data.field_name;
+    let tempDefaultValue = [];
+
+    const { dataColumns } = this.props.data;
+    if (this.props.mutable) {
+      props.defaultValue = this.props.defaultValue;
+      props.ref = this.inputField;
+    }
+
+    let baseClasses = "SortableItem rfb-item";
+    if (this.props.data.pageBreakBefore) {
+      baseClasses += " alwaysbreak";
+    }
+
+    if (
+      (this.props?.read_only || this.props.data?.isReadOnly) &&
+      !this.props.data?.allowEdit
+    ) {
+      props.disabled = "disabled";
+    }
+
+    if (this.props.defaultValue) {
+      tempDefaultValue = this.props.defaultValue || [];
+    }
+    //  async function validateInput(){
+
+    //  }
+    return (
+      <div style={{ ...this.props.style }} className={baseClasses}>
+        <ComponentHeader {...this.props} />
+        <div className="form-group">
+          <ComponentLabel {...this.props} />
+          <DataGrid
+            onChange={(data) => {
+              this.setState({ dataList: data });
+            }}
+            columns={dataColumns || []}
+            value={tempDefaultValue}
+            isReadOnly={
+              (this.props?.read_only || this.props.data?.isReadOnly) &&
+              !this.props.data?.allowEdit
+            }
           />
         </div>
       </div>
@@ -841,14 +1220,14 @@ class PasswordInput extends React.Component {
     super(props);
     this.inputField = React.createRef();
     this.state = {
-      type: 'password',
+      type: "password",
     };
   }
 
   togglePasswordVisibility = () => {
     // Toggle between 'password' and 'text' type
     this.setState((prevState) => ({
-      type: prevState.type === 'text' ? 'password' : 'text',
+      type: prevState.type === "text" ? "password" : "text",
     }));
   };
 
@@ -856,20 +1235,23 @@ class PasswordInput extends React.Component {
     const { type } = this.state;
     const props = {};
     props.type = type;
-    props.className = 'form-control';
+    props.className = "form-control";
     props.name = this.props.data.field_name;
     if (this.props.mutable) {
       props.defaultValue = this.props.defaultValue;
       props.ref = this.inputField;
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
-    if (this.props.read_only) {
-      props.disabled = 'disabled';
+    if (
+      (this.props?.read_only || this.props.data?.isReadOnly) &&
+      !this.props.data?.allowEdit
+    ) {
+      props.disabled = "disabled";
     }
     //  async function validateInput(){
 
@@ -887,7 +1269,7 @@ class PasswordInput extends React.Component {
                 onClick={this.togglePasswordVisibility}
                 className="password-toggle-button"
               >
-                {type === 'text' ? 'Hide' : 'Show'}
+                {type === "text" ? "Hide" : "Show"}
               </button>
             )}
           </div>
@@ -901,7 +1283,7 @@ class AmountInput extends React.Component {
     super(props);
     this.inputField = React.createRef();
     this.state = {
-      value: this.props.defaultValue || '',
+      value: this.props.defaultValue || "",
     };
   }
 
@@ -914,19 +1296,20 @@ class AmountInput extends React.Component {
 
   render() {
     const { data, mutable, defaultValue, style, read_only } = this.props;
-    const { toggleNegative } = data;
+    const { toggleNegative, allowEdit, isReadOnly } = data;
     const inputProps = {
-      type: 'text',
-      className: 'form-control',
+      type: "text",
+      className: "form-control",
       name: data.field_name,
       defaultValue: mutable ? defaultValue : undefined,
       ref: mutable ? this.inputField : undefined,
-      disabled: read_only,
+      disabled:
+        (read_only || isReadOnly) && !allowEdit ? "disabled" : undefined,
     };
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -940,7 +1323,9 @@ class AmountInput extends React.Component {
             decimalsLimit={6}
             defaultValue={defaultValue}
             onValueChange={this.handleValueChange}
-            disabled={read_only}
+            disabled={
+              (read_only || isReadOnly) && !allowEdit ? "disabled" : undefined
+            }
             allowNegativeValue={!!toggleNegative}
           />
           <input
@@ -962,21 +1347,24 @@ class EmailInput extends React.Component {
 
   render() {
     const props = {};
-    props.type = 'text';
-    props.className = 'form-control';
+    props.type = "text";
+    props.className = "form-control";
     props.name = this.props.data.field_name;
     if (this.props.mutable) {
       props.defaultValue = this.props.defaultValue;
       props.ref = this.inputField;
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
-    if (this.props.read_only) {
-      props.disabled = 'disabled';
+    if (
+      (this.props?.read_only || this.props.data?.isReadOnly) &&
+      !this.props.data?.allowEdit
+    ) {
+      props.disabled = "disabled";
     }
 
     return (
@@ -999,21 +1387,24 @@ class PhoneNumber extends React.Component {
 
   render() {
     const props = {};
-    props.type = 'tel';
-    props.className = 'form-control';
+    props.type = "tel";
+    props.className = "form-control";
     props.name = this.props.data.field_name;
     if (this.props.mutable) {
       props.defaultValue = this.props.defaultValue;
       props.ref = this.inputField;
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
-    if (this.props.read_only) {
-      props.disabled = 'disabled';
+    if (
+      (this.props?.read_only || this.props.data?.isReadOnly) &&
+      !this.props.data?.allowEdit
+    ) {
+      props.disabled = "disabled";
     }
 
     return (
@@ -1036,8 +1427,8 @@ class NumberInput extends React.Component {
 
   render() {
     const props = {};
-    props.type = 'number';
-    props.className = 'form-control';
+    props.type = "number";
+    props.className = "form-control";
     props.name = this.props.data.field_name;
 
     if (this.props.mutable) {
@@ -1045,13 +1436,16 @@ class NumberInput extends React.Component {
       props.ref = this.inputField;
     }
 
-    if (this.props.read_only) {
-      props.disabled = 'disabled';
+    if (
+      (this.props?.read_only || this.props.data?.isReadOnly) &&
+      !this.props.data?.allowEdit
+    ) {
+      props.disabled = "disabled";
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -1074,11 +1468,14 @@ class TextArea extends React.Component {
 
   render() {
     const props = {};
-    props.className = 'form-control';
+    props.className = "form-control";
     props.name = this.props.data.field_name;
 
-    if (this.props.read_only) {
-      props.disabled = 'disabled';
+    if (
+      (this.props?.read_only || this.props.data?.isReadOnly) &&
+      !this.props.data?.allowEdit
+    ) {
+      props.disabled = "disabled";
     }
 
     if (this.props.mutable) {
@@ -1086,9 +1483,9 @@ class TextArea extends React.Component {
       props.ref = this.inputField;
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -1111,7 +1508,7 @@ class Dropdown extends React.Component {
 
   render() {
     const props = {};
-    props.className = 'form-control';
+    props.className = "form-control";
     props.name = this.props.data.field_name;
 
     if (this.props.mutable) {
@@ -1119,13 +1516,16 @@ class Dropdown extends React.Component {
       props.ref = this.inputField;
     }
 
-    if (this.props.read_only) {
-      props.disabled = 'disabled';
+    if (
+      (this.props?.read_only || this.props.data?.isReadOnly) &&
+      !this.props.data?.allowEdit
+    ) {
+      props.disabled = "disabled";
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -1134,7 +1534,7 @@ class Dropdown extends React.Component {
         <div className="form-group">
           <ComponentLabel {...this.props} />
           <select {...props}>
-            {this.props.data.options.map((option) => {
+            {this.props.data.options?.map((option) => {
               const this_key = `preview_${option.key}`;
               return (
                 <option value={option.value} key={this_key}>
@@ -1156,7 +1556,7 @@ class SmartAdaptorDropdown extends React.Component {
 
   render() {
     const props = {};
-    props.className = 'form-control';
+    props.className = "form-control";
     props.name = this.props.data.field_name;
 
     if (this.props.mutable) {
@@ -1164,13 +1564,16 @@ class SmartAdaptorDropdown extends React.Component {
       props.ref = this.inputField;
     }
 
-    if (this.props.read_only) {
-      props.disabled = 'disabled';
+    if (
+      (this.props?.read_only || this.props.data?.isReadOnly) &&
+      !this.props.data?.allowEdit
+    ) {
+      props.disabled = "disabled";
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -1179,7 +1582,7 @@ class SmartAdaptorDropdown extends React.Component {
         <div className="form-group">
           <ComponentLabel {...this.props} />
           <select {...props}>
-            {this.props.data.options.map((option) => {
+            {this.props.data.options?.map((option) => {
               const this_key = `preview_${option.key}`;
               return (
                 <option value={option.value} key={this_key}>
@@ -1206,7 +1609,7 @@ class Signature extends React.Component {
 
   clear = () => {
     if (this.state.defaultValue) {
-      this.setState({ defaultValue: '' });
+      this.setState({ defaultValue: "" });
     } else if (this.canvas.current) {
       this.canvas.current.clear();
     }
@@ -1216,7 +1619,7 @@ class Signature extends React.Component {
     const { defaultValue } = this.state;
     let canClear = !!defaultValue;
     const props = {};
-    props.type = 'hidden';
+    props.type = "hidden";
     props.name = this.props.data.field_name;
 
     if (this.props.mutable) {
@@ -1228,13 +1631,13 @@ class Signature extends React.Component {
     if (this.props.mutable) {
       pad_props.defaultValue = defaultValue;
       pad_props.ref = this.canvas;
-      canClear = !this.props.read_only;
+      canClear = !this.props?.read_only;
     }
     pad_props.clearOnResize = false;
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     let sourceDataURL;
@@ -1247,7 +1650,7 @@ class Signature extends React.Component {
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
-          {this.props.read_only === true || !!sourceDataURL ? (
+          {this.props?.read_only === true || !!sourceDataURL ? (
             <img src={sourceDataURL} />
           ) : (
             <SignaturePad {...pad_props} />
@@ -1276,8 +1679,8 @@ class Tags extends React.Component {
 
   getDefaultValue(defaultValue, options) {
     if (defaultValue) {
-      if (typeof defaultValue === 'string') {
-        const vals = defaultValue.split(',').map((x) => x.trim());
+      if (typeof defaultValue === "string") {
+        const vals = defaultValue.split(",")?.map((x) => x.trim());
         return options.filter((x) => vals.indexOf(x.value) > -1);
       }
       return options.filter((x) => defaultValue.indexOf(x.value) > -1);
@@ -1292,7 +1695,7 @@ class Tags extends React.Component {
   };
 
   render() {
-    const options = this.props.data.options.map((option) => {
+    const options = this.props.data.options?.map((option) => {
       option.label = option.text;
       return option;
     });
@@ -1306,14 +1709,14 @@ class Tags extends React.Component {
       props.value = options[0].text;
     } // to show a sample of what tags looks like
     if (this.props.mutable) {
-      props.isDisabled = this.props.read_only;
+      props.isDisabled = this.props?.read_only;
       props.value = this.state.value;
       props.ref = this.inputField;
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -1336,14 +1739,14 @@ class Checkboxes extends React.Component {
 
   render() {
     const self = this;
-    let classNames = 'custom-control custom-checkbox';
+    let classNames = "custom-control custom-checkbox";
     if (this.props.data.inline) {
-      classNames += ' option-inline';
+      classNames += " option-inline";
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -1351,12 +1754,12 @@ class Checkboxes extends React.Component {
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
-          {this.props.data.options.map((option) => {
+          {this.props.data.options?.map((option) => {
             const this_key = `preview_${option.key}`;
             const props = {};
             props.name = `option_${option.key}`;
 
-            props.type = 'checkbox';
+            props.type = "checkbox";
             props.value = option.value;
             if (self.props.mutable) {
               props.defaultChecked =
@@ -1364,8 +1767,11 @@ class Checkboxes extends React.Component {
                 (self.props.defaultValue.indexOf(option.key) > -1 ||
                   self.props.defaultValue.indexOf(option.value) > -1);
             }
-            if (this.props.read_only) {
-              props.disabled = 'disabled';
+            if (
+              (this.props?.read_only || this.props.data?.isReadOnly) &&
+              !this.props.data?.allowEdit
+            ) {
+              props.disabled = "disabled";
             }
             return (
               <div className={classNames} key={this_key}>
@@ -1402,14 +1808,14 @@ class RadioButtons extends React.Component {
 
   render() {
     const self = this;
-    let classNames = 'custom-control custom-radio';
+    let classNames = "custom-control custom-radio";
     if (this.props.data.inline) {
-      classNames += ' option-inline';
+      classNames += " option-inline";
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -1417,12 +1823,12 @@ class RadioButtons extends React.Component {
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
-          {this.props.data.options.map((option) => {
+          {this.props.data.options?.map((option) => {
             const this_key = `preview_${option.key}`;
             const props = {};
             props.name = self.props.data.field_name;
 
-            props.type = 'radio';
+            props.type = "radio";
             props.value = option.value;
             if (self.props.mutable) {
               props.defaultChecked =
@@ -1430,8 +1836,11 @@ class RadioButtons extends React.Component {
                 (self.props.defaultValue.indexOf(option.key) > -1 ||
                   self.props.defaultValue.indexOf(option.value) > -1);
             }
-            if (this.props.read_only) {
-              props.disabled = 'disabled';
+            if (
+              (this.props?.read_only || this.props.data?.isReadOnly) &&
+              !this.props.data?.allowEdit
+            ) {
+              props.disabled = "disabled";
             }
 
             return (
@@ -1460,14 +1869,65 @@ class RadioButtons extends React.Component {
     );
   }
 }
+class RadioButton extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      selectedValue: props.defaultValue || "",
+    };
+  }
+
+  handleChange = (e) => {
+    this.setState({ selectedValue: e.target.value });
+  };
+
+  render() {
+    const { data, style, read_only } = this.props;
+    const { selectedValue } = this.state;
+
+    return (
+      <div style={style} className="SortableItem rfb-item">
+        <ComponentHeader {...this.props} />
+        <div className="form-group">
+          <ComponentLabel {...this.props} />
+          {data.options?.map((option) => {
+            const id = `fid_preview_${option.key}`;
+            return (
+              <div
+                className={`custom-control custom-radio${
+                  data.inline ? " option-inline" : ""
+                }`}
+                key={option.key}
+              >
+                <input
+                  type="radio"
+                  name={data.field_name}
+                  id={id}
+                  value={option.value}
+                  className="custom-control-input"
+                  checked={selectedValue === option.value}
+                  onChange={this.handleChange}
+                  disabled={(read_only || data?.isReadOnly) && !data.allowEdit}
+                />
+                <label className="custom-control-label" htmlFor={id}>
+                  {option.text}
+                </label>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+}
 
 class Image extends React.Component {
   render() {
-    const style = this.props.data.center ? { textAlign: 'center' } : null;
+    const style = this.props.data.center ? { textAlign: "center" } : null;
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -1503,13 +1963,13 @@ class Rating extends React.Component {
           ? parseFloat(this.props.defaultValue, 10)
           : 0;
       props.editing = true;
-      props.disabled = this.props.read_only;
+      props.disabled = this.props?.read_only;
       props.ref = this.inputField;
     }
 
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -1526,16 +1986,16 @@ class Rating extends React.Component {
 
 class HyperLink extends React.Component {
   render() {
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
       <div style={{ ...this.props.style }} className={baseClasses}>
         <ComponentHeader {...this.props} />
         <div className="form-group">
-          <label className={'form-label'}>
+          <label className={"form-label"}>
             <a
               target="_blank"
               href={this.props.data.href}
@@ -1552,9 +2012,9 @@ class HyperLink extends React.Component {
 
 class Download extends React.Component {
   render() {
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -1597,7 +2057,7 @@ class Camera extends React.Component {
   };
 
   getImageSizeProps({ width, height }) {
-    const imgProps = { width: '100%' };
+    const imgProps = { width: "100%" };
     if (width) {
       imgProps.width =
         width < window.innerWidth ? width : 0.9 * window.innerWidth;
@@ -1610,18 +2070,18 @@ class Camera extends React.Component {
 
   render() {
     const imageStyle = {
-      objectFit: 'scale-down',
-      objectPosition: this.props.data.center ? 'center' : 'left',
+      objectFit: "scale-down",
+      objectPosition: this.props.data.center ? "center" : "left",
     };
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     const name = this.props.data.field_name;
-    const fileInputStyle = this.state.img ? { display: 'none' } : null;
+    const fileInputStyle = this.state.img ? { display: "none" } : null;
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
     let sourceDataURL;
     if (
-      this.props.read_only === true &&
+      this.props?.read_only === true &&
       this.props.defaultValue &&
       this.props.defaultValue.length > 0
     ) {
@@ -1637,7 +2097,7 @@ class Camera extends React.Component {
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
-          {this.props.read_only === true &&
+          {this.props?.read_only === true &&
           this.props.defaultValue &&
           this.props.defaultValue.length > 0 ? (
             <div>
@@ -1708,8 +2168,6 @@ class FileUpload extends React.Component {
 
   fileReader = null;
 
-  MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-
   constructor(props) {
     super(props);
     this.state = {
@@ -1735,30 +2193,16 @@ class FileUpload extends React.Component {
     }
   }
 
-  validateFile = (file) => {
-    if (file.size > this.MAX_FILE_SIZE) {
-      return 'File size exceeds 5MB limit';
-    }
-
-    if (
-      this.props.data.fileType &&
-      !file.type.match(this.props.data.fileType)
-    ) {
-      return 'Invalid file type';
-    }
-
-    return null;
-  };
-
-  getBase64 = (file) => new Promise((resolve, reject) => {
+  getBase64 = (file) =>
+    new Promise((resolve, reject) => {
       this.fileReader = new FileReader();
 
       this.fileReader.onload = (event) => {
         if (event.target?.result) {
-          const base64String = event.target.result.split(',')[1];
+          const base64String = event.target.result.split(",")[1];
           resolve(base64String);
         } else {
-          reject(new Error('Failed to read file'));
+          reject(new Error("Failed to read file"));
         }
       };
 
@@ -1771,7 +2215,7 @@ class FileUpload extends React.Component {
 
   uploadFile = async (file) => {
     try {
-      const validationError = this.validateFile(file);
+      const validationError = validateFile(file, this.props.data.fileType);
       if (validationError) {
         this.setState({ error: validationError });
         return null;
@@ -1785,17 +2229,17 @@ class FileUpload extends React.Component {
       };
 
       const response = await axios.post(
-        'https://api.dev.workflow.kusala.com.ng/api/v1/FileUpload/upload-document',
-        data,
+        "https://api.dev.workflow.kusala.com.ng/api/v1/FileUpload/upload-document",
+        data
       );
 
-      this.setState({ fileStatus: 'success' });
+      this.setState({ fileStatus: "success" });
       return response.data.data;
     } catch (error) {
       const errorMessage =
-        error.response?.data?.message || 'Unable to upload file';
+        error.response?.data?.message || "Unable to upload file";
       this.setState({
-        fileStatus: 'error',
+        fileStatus: "error",
         error: errorMessage,
       });
       return null;
@@ -1827,7 +2271,7 @@ class FileUpload extends React.Component {
     e.preventDefault();
     const sourceUrl = this.props.defaultValue?.url;
     if (sourceUrl) {
-      window.open(sourceUrl, '_blank', 'noopener,noreferrer');
+      window.open(sourceUrl, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -1835,11 +2279,11 @@ class FileUpload extends React.Component {
     const { fileUpload, fileLoading, error } = this.state;
     const { data, read_only, defaultValue, style } = this.props;
     const baseClasses = `SortableItem rfb-item${
-      data.pageBreakBefore ? ' alwaysbreak' : ''
+      data.pageBreakBefore ? " alwaysbreak" : ""
     }`;
     const fileInputStyle = fileUpload
-      ? { display: 'none' }
-      : { display: 'flex' };
+      ? { display: "none" }
+      : { display: "flex" };
 
     return (
       <div style={style} className={baseClasses}>
@@ -1850,7 +2294,7 @@ class FileUpload extends React.Component {
             <div>
               <div
                 className="fileName"
-                style={{ textTransform: 'capitalize', marginBottom: '8px' }}
+                style={{ textTransform: "capitalize", marginBottom: "8px" }}
               >
                 {defaultValue.fileName}
               </div>
@@ -1871,14 +2315,16 @@ class FileUpload extends React.Component {
           ) : (
             <div className="image-upload-container">
               {!fileUpload && (
-                <div style={{ ...fileInputStyle, alignItems: 'center' }}>
+                <div style={{ ...fileInputStyle, alignItems: "center" }}>
                   <input
                     name={data.field_name}
                     type="file"
-                    accept={data.fileType || '*'}
+                    accept={data.fileType || defaultFileType}
                     className="image-upload"
                     onChange={this.handleFileChange}
-                    disabled={read_only}
+                    disabled={
+                      (read_only || data?.isReadOnly) && !data?.allowEdit
+                    }
                     aria-label="Choose file"
                   />
                   <div className="image-upload-control">
@@ -1886,14 +2332,14 @@ class FileUpload extends React.Component {
                       <i className="fas fa-file" aria-hidden="true"></i> Upload
                       File
                     </div>
-                    <p style={{ padding: '0 10px', margin: 0 }}>
+                    <p style={{ padding: "0 10px", margin: 0 }}>
                       Select a file from your device.
                     </p>
                   </div>
                   {fileLoading && (
                     <div
-                      className="spinner-border spinner-border-sm text-secondary position-absolute align-middle"
-                      style={{ right: '16px' }}
+                      className="align-middle spinner-border spinner-border-sm text-secondary position-absolute"
+                      style={{ right: "16px" }}
                       role="status"
                       aria-label="Loading"
                     />
@@ -1905,7 +2351,7 @@ class FileUpload extends React.Component {
                 <div
                   className="error-message"
                   role="alert"
-                  style={{ color: 'red', marginTop: '8px' }}
+                  style={{ color: "red", marginTop: "8px" }}
                 >
                   {error}
                 </div>
@@ -1915,7 +2361,7 @@ class FileUpload extends React.Component {
                 <div>
                   <div className="file-upload-preview">
                     <div
-                      style={{ display: 'inline-block', marginRight: '5px' }}
+                      style={{ display: "inline-block", marginRight: "5px" }}
                     >
                       {`File Name: ${fileUpload.fileName}`}
                     </div>
@@ -1923,9 +2369,9 @@ class FileUpload extends React.Component {
                       type="button"
                       className="btn btn-file-upload-clear"
                       style={{
-                        padding: '4px 0',
-                        fontSize: '12px',
-                        marginTop: '6px',
+                        padding: "4px 0",
+                        fontSize: "12px",
+                        marginTop: "6px",
                       }}
                       onClick={this.clearFileUpload}
                       aria-label="Remove file"
@@ -1934,21 +2380,21 @@ class FileUpload extends React.Component {
                     </button>
                   </div>
 
-                  {this.state.fileStatus === 'success' && (
+                  {this.state.fileStatus === "success" && (
                     <div
                       style={{
-                        display: 'flex',
-                        justifyContent: 'flex-end',
-                        columnGap: '20px',
-                        alignItems: 'center',
-                        marginTop: '4px',
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        columnGap: "20px",
+                        alignItems: "center",
+                        marginTop: "4px",
                       }}
                     >
                       <span
                         style={{
-                          fontSize: '11px',
-                          color: 'green',
-                          fontStyle: 'italic',
+                          fontSize: "11px",
+                          color: "green",
+                          fontStyle: "italic",
                         }}
                         role="status"
                       >
@@ -1977,13 +2423,14 @@ class MultiFileUpload extends React.Component {
           isLoading: false,
         },
       ],
-      error: '',
+      error: "",
+      fileType: "image/*",
     };
   }
 
   componentDidMount() {
     if (this.props.defaultValue) {
-      const fileUpload = this.props.defaultValue.map((file) => ({
+      const fileUpload = this.props.defaultValue?.map((file) => ({
         ...file,
         isLoading: false,
       }));
@@ -1991,49 +2438,55 @@ class MultiFileUpload extends React.Component {
     }
   }
 
-  getBase64 = (file) => new Promise((resolve, reject) => {
+  getBase64 = (file) =>
+    new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onload = () => resolve(reader.result.split(",")[1]);
       reader.onerror = (error) => reject(error);
       reader.readAsDataURL(file);
     });
 
   uploadFile = async (file, index) => {
     try {
+      const validationError = validateFile(file, this.props.data.fileType);
+      if (validationError) {
+        this.setState({ error: validationError });
+        return null;
+      }
       this.setState((prevState) => {
         const fileUpload = [...prevState.fileUpload];
         fileUpload[index] = {
           ...fileUpload[index],
           isLoading: true,
         };
-        return { fileUpload, error: '' };
+        return { fileUpload, error: "" };
       });
 
       const data = {
         fileName: file.name,
         base64: await this.getBase64(file),
-        ext: `.${file.name.split('.').pop()}`,
+        ext: `.${file.name.split(".").pop()}`,
       };
 
       const response = await fetch(
-        'https://api.dev.workflow.kusala.com.ng/api/v1/FileUpload/upload-document',
+        "https://api.dev.workflow.kusala.com.ng/api/v1/FileUpload/upload-document",
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(data),
-        },
+        }
       );
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        throw new Error("Upload failed");
       }
 
       const result = await response.json();
       return result.data;
     } catch (error) {
-      this.setState({ error: error.message || 'Unable to upload file' });
+      this.setState({ error: error.message || "Unable to upload file" });
       return null;
     } finally {
       this.setState((prevState) => {
@@ -2093,19 +2546,19 @@ class MultiFileUpload extends React.Component {
   saveFile = (e, fileUrl) => {
     e.preventDefault();
     if (fileUrl) {
-      window.open(fileUrl, '_blank');
+      window.open(fileUrl, "_blank");
     } else {
-      console.error('File URL is missing!');
+      console.error("File URL is missing!");
     }
   };
 
   renderReadOnlyView() {
     const { defaultValue } = this.props;
     return (
-      <div className="d-grid gap-3" style={{ rowGap: '12px', display: 'grid' }}>
-        {defaultValue.map((file, index) => (
+      <div className="gap-3 d-grid" style={{ rowGap: "12px", display: "grid" }}>
+        {defaultValue?.map((file, index) => (
           <div key={index} className="">
-            <div className="text-capitalize form-control mb-1">
+            <div className="mb-1 text-capitalize form-control">
               {file.fileData?.fileName}
             </div>
 
@@ -2120,49 +2573,51 @@ class MultiFileUpload extends React.Component {
   }
 
   renderFileInput(file, index) {
-    const { read_only } = this.props;
-
+    const { read_only, data } = this.props;
     return (
-      <div key={index} className="d-flex align-items-center gap-3 mb-3">
+      <div key={index} className="gap-3 mb-3 d-flex align-items-center">
         <div className="flex-grow-1 position-relative image-upload-control">
           <input
             type="file"
             onChange={(e) => this.handleFileUpload(e, index)}
-            disabled={file?.isLoading || read_only}
-            accept="*"
+            disabled={
+              file?.isLoading ||
+              ((read_only || data?.isReadOnly) && !data?.allowEdit)
+            }
+            accept={data.fileType || defaultFileType}
             className="d-none"
             id={`fileInput-${index}`}
           />
           <label
             htmlFor={`fileInput-${index}`}
-            className=" d-flex align-items-center cursor-pointer mb-0 flex-grow-1"
+            className="mb-0 cursor-pointer d-flex align-items-center flex-grow-1"
             style={{ flex: 1 }}
           >
-            <span className="btn btn-default mr-3">
+            <span className="mr-3 btn btn-default">
               <i className="fas fa-upload me-2"></i> Upload
             </span>
             <span className="text-muted">
-              {file?.fileName || 'Select a file from your device'}
+              {file?.fileName || "Select a file from your device"}
             </span>
             {file?.isLoading && (
               <div
                 className="spinner-border spinner-border-sm text-secondary position-absolute"
-                style={{ right: '1rem' }}
+                style={{ right: "1rem" }}
                 role="status"
                 aria-label="Loading"
               />
             )}
           </label>
-          <div className="d-flex gap-2" style={{ columnGap: '10px' }}>
+          <div className="gap-2 d-flex" style={{ columnGap: "10px" }}>
             {file?.fileData && !file?.isLoading && (
               <button
                 type="button"
                 onClick={() => this.clearFileUpload(index)}
                 className=" btn-file-upload-clear"
                 style={{
-                  padding: '8px',
-                  fontSize: '14px',
-                  border: 'none',
+                  padding: "8px",
+                  fontSize: "14px",
+                  border: "none",
                 }}
                 aria-label="Clear file"
                 title="Clear file"
@@ -2177,9 +2632,9 @@ class MultiFileUpload extends React.Component {
                 onClick={() => this.removeFileInput(index)}
                 className=" btn-file-upload-clear"
                 style={{
-                  padding: '8px',
-                  fontSize: '14px',
-                  border: 'none',
+                  padding: "8px",
+                  fontSize: "14px",
+                  border: "none",
                 }}
                 aria-label="Remove input"
                 title="Remove input"
@@ -2198,7 +2653,7 @@ class MultiFileUpload extends React.Component {
     const { style, data, read_only, defaultValue } = this.props;
 
     const baseClasses = `SortableItem rfb-item${
-      data.pageBreakBefore ? ' alwaysbreak' : ''
+      data.pageBreakBefore ? " alwaysbreak" : ""
     }`;
 
     return (
@@ -2211,21 +2666,23 @@ class MultiFileUpload extends React.Component {
             this.renderReadOnlyView()
           ) : (
             <div className="mb-3">
-              {fileUpload.map((file, index) => this.renderFileInput(file, index))}
+              {fileUpload?.map((file, index) =>
+                this.renderFileInput(file, index)
+              )}
 
               <button
                 type="button"
                 onClick={this.addFileInput}
-                className="btn btn-link btn-sm py-0 text-decoration-none"
+                className="py-0 btn btn-link btn-sm text-decoration-none"
               >
-                <i className="fas fa-plus mr-2"></i>
+                <i className="mr-2 fas fa-plus"></i>
                 Add File
               </button>
             </div>
           )}
 
           {error && (
-            <div className="alert alert-danger mt-3" role="alert">
+            <div className="mt-3 alert alert-danger" role="alert">
               {error}
             </div>
           )}
@@ -2258,7 +2715,7 @@ class Range extends React.Component {
     const props = {};
     const name = this.props.data.field_name;
 
-    props.type = 'range';
+    props.type = "range";
     props.list = `tickmarks_${name}`;
     props.min = this.props.data.min_value;
     props.max = this.props.data.max_value;
@@ -2282,11 +2739,11 @@ class Range extends React.Component {
 
     const oneBig = 100 / (datalist.length - 1);
 
-    const _datalist = datalist.map((d, idx) => (
+    const _datalist = datalist?.map((d, idx) => (
       <option key={`${props.list}_${idx}`}>{d}</option>
     ));
 
-    const visible_marks = datalist.map((d, idx) => {
+    const visible_marks = datalist?.map((d, idx) => {
       const option_props = {};
       let w = oneBig;
       if (idx === 0 || idx === datalist.length - 1) {
@@ -2295,17 +2752,20 @@ class Range extends React.Component {
       option_props.key = `${props.list}_label_${idx}`;
       option_props.style = { width: `${w}%` };
       if (idx === datalist.length - 1) {
-        option_props.style = { width: `${w}%`, textAlign: 'right' };
+        option_props.style = { width: `${w}%`, textAlign: "right" };
       }
       return <label {...option_props}>{d}</label>;
     });
 
-    if (this.props.read_only) {
-      props.disabled = 'disabled';
+    if (
+      (this.props?.read_only || this.props.data?.isReadOnly) &&
+      !this.props.data?.allowEdit
+    ) {
+      props.disabled = "disabled";
     }
-    let baseClasses = 'SortableItem rfb-item';
+    let baseClasses = "SortableItem rfb-item";
     if (this.props.data.pageBreakBefore) {
-      baseClasses += ' alwaysbreak';
+      baseClasses += " alwaysbreak";
     }
 
     return (
@@ -2338,7 +2798,10 @@ FormElements.DynamicInput = DynamicInput;
 FormElements.AmountInput = AmountInput;
 FormElements.DocumentSelect = DocumentSelect;
 FormElements.TableInput = TableInput;
+FormElements.CascadeSelect = CascadeSelect;
 FormElements.DynamicMultiInput = DynamicMultiInput;
+FormElements.CustomSelect = CustomSelect;
+FormElements.DataGridInput = DataGridInput;
 FormElements.MultiFileUpload = MultiFileUpload;
 FormElements.PasswordInput = PasswordInput;
 FormElements.EmailInput = EmailInput;
@@ -2351,6 +2814,7 @@ FormElements.Signature = Signature;
 FormElements.Checkboxes = Checkboxes;
 FormElements.DatePicker = DatePicker;
 FormElements.RadioButtons = RadioButtons;
+FormElements.RadioButton = RadioButton;
 FormElements.Image = Image;
 FormElements.Rating = Rating;
 FormElements.Tags = Tags;

@@ -17,6 +17,13 @@ import IntlMessages from './language-provider/IntlMessages';
 import ApiExample from './ApiExample';
 import TableInputColumn from './TableInputColumns';
 import DynamicInputOptionList from './DynamicInputOptions';
+import FileReaderComponent from './FileReaderComponent';
+
+import OptionCreateList from './OptionsCreate';
+import OptionCreateApi from './OptionsCreateApi';
+import OptionsExample from './OptionsExample';
+import MultiSelectInput from './MultiSelectInput';
+import DataGridOptions from './data-grid-options';
 
 const toolbar = {
   options: ['inline', 'list', 'textAlign', 'fontSize', 'link', 'history'],
@@ -26,6 +33,18 @@ const toolbar = {
     options: ['bold', 'italic', 'underline', 'superscript', 'subscript'],
   },
 };
+const dateFormats = [
+  { label: 'Day/Month/Year', format: 'dd/MM/yyyy' },
+  { label: 'Month/Day/Year', format: 'MM/dd/yyyy' },
+  { label: 'ISO (Year-Month-Day)', format: 'yyyy-MM-dd' },
+  { label: 'Full Month Day, Year', format: 'MMMM d, yyyy' },
+  { label: 'Abbreviated Month Day, Year', format: 'MMM d, yyyy' },
+  { label: 'Day. Month. Year (Dots)', format: 'dd.MM.yyyy' },
+  { label: 'Day Month Name Year', format: 'dd MMMM yyyy' },
+  { label: 'Weekday, Month Day, Year', format: 'EEEE, MMMM d, yyyy' },
+  { label: 'Short Weekday, Month Day, Year', format: 'EEE, MMM d, yyyy' },
+  { label: 'Day-Month-Year', format: 'dd-MM-yyyy' },
+];
 
 export default class FormElementsEdit extends React.Component {
   constructor(props) {
@@ -36,6 +55,9 @@ export default class FormElementsEdit extends React.Component {
       dirty: false,
       fileLoading: false,
       documents: [],
+      multiFieldOptions: this.props.formData.filter(
+        (i) => i.id !== this.props.element.id,
+      ),
     };
     this.getDocuments = this.getDocuments.bind(this);
   }
@@ -62,6 +84,7 @@ export default class FormElementsEdit extends React.Component {
         },
       };
       // a4368688-3294-412e-a516-7e1bde2c32a6
+      if (!token) return;
       const url = `https://api.dev.document.kusala.com.ng/api/v1/documentmanagement/get-documents-inbox?email=${loginData?.email}`;
       const response = await axios.post(url, query, config);
       if (response.status === 200) {
@@ -155,11 +178,12 @@ export default class FormElementsEdit extends React.Component {
 
   addOptions() {
     const optionsApiUrl = document.getElementById('optionsApiUrl').value;
+
     if (optionsApiUrl) {
-      get(optionsApiUrl).then((data) => {
+      get(optionsApiUrl).then((response) => {
         this.props.element.options = [];
         const { options } = this.props.element;
-        data.forEach((x) => {
+        (response.data || response).forEach((x) => {
           // eslint-disable-next-line no-param-reassign
           x.key = ID.uuid();
           options.push(x);
@@ -171,6 +195,20 @@ export default class FormElementsEdit extends React.Component {
         });
       });
     }
+  }
+
+  addOptionsFromSheet(data) {
+    const { options } = this.props.element;
+    data.forEach((x) => {
+      // eslint-disable-next-line no-param-reassign
+      x.key = ID.uuid();
+      options.push(x);
+    });
+    const this_element = this.state.element;
+    this.setState({
+      element: this_element,
+      dirty: true,
+    });
   }
 
   componentDidMount() {
@@ -185,8 +223,12 @@ export default class FormElementsEdit extends React.Component {
     const this_checked = this.props.element.hasOwnProperty('required')
       ? this.props.element.required
       : false;
-    const this_read_only = this.props.element.hasOwnProperty('readOnly')
-      ? this.props.element.readOnly
+    // const this_read_only = this.props.element.hasOwnProperty('readOnly')
+    //   ? this.props.element.readOnly
+    //   : false;
+
+    const this_is_read_only = this.props.element.hasOwnProperty('isReadOnly')
+      ? this.props.element.isReadOnly
       : false;
     const this_default_today = this.props.element.hasOwnProperty('defaultToday')
       ? this.props.element.defaultToday
@@ -226,8 +268,9 @@ export default class FormElementsEdit extends React.Component {
 
     const this_checked_toggle_password = this.props.element.hasOwnProperty(
       'togglePassword',
-    ) ? this.props.element.togglePassword
-    : false;
+    )
+      ? this.props.element.togglePassword
+      : false;
 
     const this_checked_toggle_negative = this.props.element.hasOwnProperty(
       'toggleNegative',
@@ -363,7 +406,7 @@ export default class FormElementsEdit extends React.Component {
                 <IntlMessages id="required" />
               </label>
             </div>
-            {this.props.element.hasOwnProperty('readOnly') && (
+            {/* {this.props.element.hasOwnProperty('readOnly') && (
               <div className="custom-control custom-checkbox">
                 <input
                   id="is-read-only"
@@ -378,6 +421,25 @@ export default class FormElementsEdit extends React.Component {
                   )}
                 />
                 <label className="custom-control-label" htmlFor="is-read-only">
+                  <IntlMessages id="read-only" />
+                </label>
+              </div>
+            )} */}
+            {this.props.element.hasOwnProperty('isReadOnly') && (
+              <div className="custom-control custom-checkbox">
+                <input
+                  id="read-only"
+                  className="custom-control-input"
+                  type="checkbox"
+                  checked={this_is_read_only}
+                  value={true}
+                  onChange={this.editElementProp.bind(
+                    this,
+                    'isReadOnly',
+                    'checked',
+                  )}
+                />
+                <label className="custom-control-label" htmlFor="read-only">
                   <IntlMessages id="read-only" />
                 </label>
               </div>
@@ -565,7 +627,8 @@ export default class FormElementsEdit extends React.Component {
             </div>
           </div>
         )}
-        {this.state.element.element === 'FileUpload' && (
+        {(this.state.element.element === 'FileUpload' ||
+          this.state.element.element === 'MultiFileUpload') && (
           <div>
             <div className="form-group">
               <label className="control-label" htmlFor="fileType">
@@ -576,6 +639,7 @@ export default class FormElementsEdit extends React.Component {
                 className="form-control"
                 onBlur={this.updateElement.bind(this)}
                 onChange={this.editElementProp.bind(this, 'fileType', 'value')}
+                value={this.props.element.fileType}
               >
                 {[
                   {
@@ -630,7 +694,6 @@ export default class FormElementsEdit extends React.Component {
         ) : (
           <div />
         )}
-
         {canHavePageBreakBefore && (
           <div className="form-group">
             <label className="control-label">
@@ -658,7 +721,6 @@ export default class FormElementsEdit extends React.Component {
             </div>
           </div>
         )}
-
         {/* {canHaveAlternateForm && (
           <div className="form-group">
             <label className="control-label">
@@ -788,7 +850,7 @@ export default class FormElementsEdit extends React.Component {
             </div>
           </div>
         )}
-         {this.props.element.hasOwnProperty('canToggleNegative') && (
+        {this.props.element.hasOwnProperty('canToggleNegative') && (
           <div className="form-group">
             <div className="custom-control custom-checkbox">
               <input
@@ -806,6 +868,24 @@ export default class FormElementsEdit extends React.Component {
               <label className="custom-control-label" htmlFor="toggle-negative">
                 Can Allow Negative
               </label>
+            </div>
+          </div>
+        )}
+            {this.props.element.hasOwnProperty('canMapFields') && (
+          <div className="">
+            <div className="form-group">
+              <label className="control-label text-13" htmlFor="documentId">
+                Select Mapped Fields
+              </label>
+
+              <MultiSelectInput
+                element={this.props.element}
+                options={this.state.multiFieldOptions}
+                value={this.props.element.mappedFields || []}
+                onChange={(newValues) => {
+                  this.editElementProp(this, 'mappedFields', newValues);
+                }}
+              />
             </div>
           </div>
         )}
@@ -940,6 +1020,33 @@ export default class FormElementsEdit extends React.Component {
             </div>
           </div>
         )}
+        {this.props.element.hasOwnProperty('canSelectDateFormat') && (
+          <div className="">
+            <div className="form-group">
+              <label className="control-label text-13" htmlFor="documentId">
+                Choose a date format
+              </label>
+
+              <select
+                id="dateFormat"
+                className="form-control"
+                value={this.props.element.documentId}
+                onBlur={this.updateElement.bind(this)}
+                onChange={this.editElementProp.bind(
+                  this,
+                  'dateFormat',
+                  'value',
+                )}
+              >
+                {dateFormats?.map((item) => (
+                  <option key={item.format} value={item.format}>
+                    {item.label} ({item.format})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
         {this.props.element.hasOwnProperty('canHaveDenonimator') && (
           <div className="">
             <div className="form-group">
@@ -955,17 +1062,109 @@ export default class FormElementsEdit extends React.Component {
             </div>
           </div>
         )}
-         {this.props.element.hasOwnProperty('canHaveDynamicInputOptions') && (
+
+        {this.props.element.hasOwnProperty('canHaveDynamicInputOptions') && (
           <div className="">
             <div className="form-group">
-              <label className="control-label text-13" htmlFor="documentId">
+              <label className="control-label text-13" htmlFor="dynamicInputOptions">
                 Add Inputs Key/Label
               </label>
               <DynamicInputOptionList
-
                 initialFields={this.props.element.dynamicInputOptions}
                 onChange={(newValues) => {
                   this.editElementProp(this, 'dynamicInputOptions', newValues);
+                }}
+              />
+            </div>
+          </div>
+        )}{' '}
+           {this.props.element.hasOwnProperty('canHaveDataColumns') && (
+          <div className="">
+            <div className="form-group">
+              <label className="control-label text-13" htmlFor="dynamicInputOptions">
+                Add Data Columns
+              </label>
+              <DataGridOptions
+                value={this.props.element.dataColumns}
+                onChange={(newValues) => {
+                  this.editElementProp(this, 'dataColumns', newValues);
+                }}
+              />
+            </div>
+          </div>
+        )}{' '}
+        {this.props.element.hasOwnProperty('canHandleMultiOptions') && (
+          <div className="">
+            <div className="form-group">
+              <label className="control-label text-13" htmlFor="firstLabel">
+                First DropDown Detail
+              </label>
+              <input
+                id="firstLabel"
+                className="input-style"
+                defaultValue={this.props.element.firstLabel}
+                placeholder="Enter First label"
+                onBlur={this.updateElement.bind(this)}
+                onChange={this.editElementProp.bind(
+                  this,
+                  'firstLabel',
+                  'value',
+                )}
+              />
+              <div className="mt-1">
+                <OptionCreateApi
+                  onChange={(newValues) => {
+                    this.editElementProp(
+                      this,
+                      'firstDropdownOptions',
+                      newValues,
+                    );
+                  }}
+                />
+              </div>
+              <OptionCreateList
+                hideKey
+                initialFields={this.props.element.firstDropdownOptions}
+                onChange={(newValues) => {
+                  this.editElementProp(this, 'firstDropdownOptions', newValues);
+                }}
+              />
+            </div>
+            <div className="form-group">
+              <label className="control-label text-13" htmlFor="secondLabel">
+                Second DropDown Detail
+              </label>
+              <input
+                id="secondLabel"
+                className="input-style"
+                defaultValue={this.props.element.secondLabel}
+                placeholder="Enter Second label"
+                onBlur={this.updateElement.bind(this)}
+                onChange={this.editElementProp.bind(
+                  this,
+                  'secondLabel',
+                  'value',
+                )}
+              />
+              <div className="mt-1">
+                <OptionCreateApi
+                  onChange={(newValues) => {
+                    this.editElementProp(
+                      this,
+                      'secondDropdownOptions',
+                      newValues,
+                    );
+                  }}
+                />
+              </div>
+              <OptionCreateList
+                initialFields={this.props.element.secondDropdownOptions}
+                onChange={(newValues) => {
+                  this.editElementProp(
+                    this,
+                    'secondDropdownOptions',
+                    newValues,
+                  );
                 }}
               />
             </div>
@@ -1068,23 +1267,49 @@ export default class FormElementsEdit extends React.Component {
               <label className="control-label" htmlFor="optionsApiUrl">
                 <IntlMessages id="populate-options-from-api" />
               </label>
+              <OptionsExample />
               <div className="row">
-                <div className="col-sm-6">
+                <div className="col-sm-8">
                   <input
-                    className="form-control"
+                    className="input-style"
                     style={{ width: '100%' }}
                     type="text"
                     id="optionsApiUrl"
+                    onBlur={this.updateElement.bind(this)}
+                    onChange={this.editElementProp.bind(
+                      this,
+                      'optionsApiUrl',
+                      'value',
+                    )}
                     placeholder="http://localhost:8080/api/optionsdata"
                   />
                 </div>
-                <div className="col-sm-6">
+                <div className="col-sm-4">
                   <button
                     onClick={this.addOptions.bind(this)}
-                    className="btn btn-success"
+                    className="button-style"
                   >
                     <IntlMessages id="populate" />
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+        {this.props.element.canPopulateFromApi &&
+          this.props.element.hasOwnProperty('options') && (
+            <div className="form-group">
+              <label className="control-label" htmlFor="optionsApiUrl">
+                Populate from sheet (csv, xlsx)
+              </label>
+
+              <div className="row">
+                <div className="col-sm-6">
+                  <FileReaderComponent
+                    name="options"
+                    setValue={(name, value) => {
+                      this.addOptionsFromSheet(value);
+                    }}
+                  />
                 </div>
               </div>
             </div>

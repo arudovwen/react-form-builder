@@ -30,21 +30,21 @@ const DynamicInputOptionList = ({ initialFields = [], onChange }) => {
               placeholder="Enter Key"
               value={field.key}
               onChange={(e) => handleChange(index, 'key', e.target.value)}
-               className="border border-gray-100 rounded w-full px-3 py-1 outline-none"
+               className="input-style"
             />
             <input
               placeholder="Enter Label"
               value={field.label}
               onChange={(e) => handleChange(index, 'label', e.target.value)}
-               className="border border-gray-100 rounded w-full px-3 py-1 outline-none"
+               className="input-style"
             />
             <select onChange={(e) => handleChange(index, 'type', e.target.value)}
-               className="border border-gray-100 rounded w-full px-3 py-1 outline-none">
+               className="input-style">
                 <option value="text">Text</option>
                 <option value="number">Number</option>
                 <option value="date">Date</option>
             </select>
-            <button type='button' onClick={() => removeField(index)} className='text-xs outline-none ml-1' >Remove</button>
+            <button type='button' onClick={() => removeField(index)} className='ml-1 text-xs outline-none' >Remove</button>
           </div>
         ))}
         <button type='button' className='text-xs outline-none' onClick={addField}>Add Field</button>

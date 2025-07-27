@@ -1,81 +1,81 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Image as LucideImage,
+  FileText,
+  File,
+  FileSpreadsheet,
+  FileBarChart,
+  FileQuestion,
+} from 'lucide-react';
+
+const EXTENSION_MAP = {
+  jpg: 'image',
+  jpeg: 'image',
+  png: 'image',
+  gif: 'image',
+  bmp: 'image',
+  webp: 'image',
+  svg: 'image',
+  pdf: 'pdf',
+  doc: 'word',
+  docx: 'word',
+  xls: 'excel',
+  xlsx: 'excel',
+  ppt: 'powerpoint',
+  pptx: 'powerpoint',
+};
+
+const FILE_TYPE_ICONS = {
+  image: LucideImage,
+  pdf: FileText,
+  word: File,
+  excel: FileSpreadsheet,
+  powerpoint: FileBarChart,
+  other: FileQuestion,
+};
 
 const UniversalFileViewer = ({ fileUrl, fileName }) => {
-  // State to control modal visibility
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [fileType, setFileType] = useState('unknown');
 
-  // Determine file type based on extension
   useEffect(() => {
     if (!fileUrl) return;
-
-    const extension = fileUrl.split('.').pop().toLowerCase();
-    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
-
-    if (imageExtensions.includes(extension)) {
-      setFileType('image');
-    } else if (['pdf'].includes(extension)) {
-      setFileType('pdf');
-    } else if (['doc', 'docx'].includes(extension)) {
-      setFileType('word');
-    } else if (['xls', 'xlsx'].includes(extension)) {
-      setFileType('excel');
-    } else if (['ppt', 'pptx'].includes(extension)) {
-      setFileType('powerpoint');
-    } else {
-      setFileType('other');
-    }
+    const extension = fileUrl.split('.').pop()?.toLowerCase() || '';
+    const type = EXTENSION_MAP[extension] || 'other';
+    setFileType(type);
   }, [fileUrl]);
 
-  // Function to open modal for images, download for other files
   const handleFileClick = () => {
     if (fileType === 'image') {
       setIsModalOpen(true);
     } else {
-      // For non-image files, open in new tab or download
       window.open(fileUrl, '_blank');
     }
   };
 
-  // Function to close modal
-  const closeModal = () => {
-    setIsModalOpen(false);
+  const closeModal = () => setIsModalOpen(false);
+
+  const renderIcon = () => {
+    const IconComponent = FILE_TYPE_ICONS[fileType] || FileQuestion;
+    return <IconComponent size={40} className="text-gray-500" />;
   };
 
-  // Get file icon based on type
-  const getFileIcon = () => {
-    switch (fileType) {
-      case 'image':
-        return fileUrl || '/place.png'; // Actual image or placeholder
-      case 'pdf':
-        return '/icons/pdf-icon.png'; // Replace with your PDF icon path
-      case 'word':
-        return '/icons/word-icon.png'; // Replace with your Word icon path
-      case 'excel':
-        return '/icons/excel-icon.png'; // Replace with your Excel icon path
-      case 'powerpoint':
-        return '/icons/ppt-icon.png'; // Replace with your PowerPoint icon path
-      default:
-        return '/icons/file-icon.png'; // Replace with your generic file icon path
-    }
-  };
-
-  // Determine display element based on file type
   const getThumbnailElement = () => {
     if (fileType === 'image') {
       return (
         <button
           className="btn btn-view"
           type="button"
-          aria-label={'Preview file'}
+          aria-label="Preview file"
         >
           <span>Preview File</span>
         </button>
       );
     }
-    // For non-image files, show an icon with filename
+
     return (
       <div
+        onClick={handleFileClick}
         style={{
           cursor: 'pointer',
           width: '120px',
@@ -88,31 +88,11 @@ const UniversalFileViewer = ({ fileUrl, fileName }) => {
           borderRadius: '4px',
           padding: '10px',
         }}
-        data-toggle="tooltip"
-        data-placement="top"
         title={`Click to ${fileType === 'pdf' ? 'open' : 'download'} ${
           fileName || 'file'
         }`}
       >
-        <div
-          style={{
-            width: '60px',
-            height: '60px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '10px',
-          }}
-        >
-          <img
-            src={getFileIcon()}
-            alt={`${fileType} icon`}
-            style={{
-              maxWidth: '100%',
-              maxHeight: '100%',
-            }}
-          />
-        </div>
+        <div style={{ marginBottom: '10px' }}>{renderIcon()}</div>
         <div
           style={{
             fontSize: '12px',
@@ -123,7 +103,7 @@ const UniversalFileViewer = ({ fileUrl, fileName }) => {
             width: '100%',
           }}
         >
-          {fileName || (fileUrl ? fileUrl.split('/').pop() : 'Unknown file')}
+          {fileName || fileUrl?.split('/').pop() || 'Unknown file'}
         </div>
       </div>
     );
@@ -131,10 +111,8 @@ const UniversalFileViewer = ({ fileUrl, fileName }) => {
 
   return (
     <div>
-      {/* Thumbnail of the file */}
       <div onClick={handleFileClick}>{getThumbnailElement()}</div>
 
-      {/* Modal only for viewing images */}
       {isModalOpen && fileType === 'image' && (
         <div
           className="modal"
@@ -163,7 +141,7 @@ const UniversalFileViewer = ({ fileUrl, fileName }) => {
               maxHeight: '90vh',
               overflow: 'auto',
             }}
-            onClick={(e) => e.stopPropagation()} // Prevent modal close when clicking inside
+            onClick={(e) => e.stopPropagation()}
           >
             <span
               className="close"
@@ -174,7 +152,6 @@ const UniversalFileViewer = ({ fileUrl, fileName }) => {
                 right: '10px',
                 fontSize: '24px',
                 cursor: 'pointer',
-                zIndex: 1001,
               }}
             >
               &times;

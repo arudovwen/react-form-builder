@@ -1,6 +1,3 @@
-/* src/index.css or src/tailwind.css */
-
-/* Import Tailwind’s base, components, and utilities */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -15,4 +12,62 @@
 
 .loaded_file {
   background: #efefef4d !important;
+}
+
+.option_btn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5x 0px;
+  .add {
+    outline: none;
+  }
+  .remove {
+    outline: none;
+  }
+}
+.file_reader {
+  display: flex;
+  align-items: start;
+  font-size: 10px;
+}
+.input-style {
+  width: 100%;
+  padding: 0.25rem 0.75rem; /* py-1 px-3 */
+  margin-bottom: 0.25rem; /* mb-1 */
+  border: 1px solid #f3f4f6; /* border-gray-100 */
+  border-radius: 0.25rem; /* rounded */
+  outline: none; /* outline-none */
+}
+.text-12 {
+  font-size: 12px;
+}
+
+.button-style {
+  padding: 0.25rem 0.75rem; /* py-1 px-3 */
+  font-size: 0.75rem; /* text-xs */
+  color: #ffffff; /* text-white */
+  background-color: #4b5563; /* bg-gray-600 */
+  border-radius: 0.25rem; /* rounded */
+  outline: none; /* outline-none */
+}
+
+.file-style::-webkit-file-upload-button {
+  padding: 0.25rem 0.75rem; /* py-1 px-3 */
+  font-size: 0.75rem; /* text-xs */
+  color: #ffffff; /* text-white */
+  background-color: #4b5563; /* bg-gray-600 */
+  border-radius: 0.25rem; /* rounded */
+  outline: none;
+}
+
+.file-style::file-selector-button {
+  padding: 0.25rem 0.75rem; /* py-1 px-3 */
+  font-size: 0.75rem; /* text-xs */
+  color: #ffffff; /* text-white */
+  background-color: #4b5563; /* bg-gray-600 */
+  border-radius: 0.25rem; /* rounded */
+  outline: none;
+}
+.react-datepicker-wrapper {
+  width: 100%;
 }

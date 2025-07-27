@@ -56,7 +56,7 @@ const DynamicInputList = ({
           {field?.type === 'number' ? <CurrencyInput
               id={field.key}
               placeholder={`Provide ${field.label?.toLowerCase() || 'value'}`}
-              className="border border-gray-100 rounded w-full px-3 py-1 outline-none"
+              className="w-full px-3 py-1 border border-gray-100 rounded outline-none"
               decimalsLimit={6}
               defaultValue={field.value}
               onValueChange={(e) => handleChange(index, 'value', e)}
@@ -71,7 +71,7 @@ const DynamicInputList = ({
               type={field.type}
               onChange={(e) => handleChange(index, 'value', e.target.value)}
               readOnly={readOnly}
-              className="border border-gray-100 rounded w-full px-3 py-1 outline-none"
+              className="w-full px-3 py-1 border border-gray-100 rounded outline-none"
             />}
 
           </div>

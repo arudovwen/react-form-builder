@@ -126,7 +126,7 @@
           margin: 0;
           padding: 0;
           li {
-            margin-top: 10px;
+         
             input {
               &.form-control {
                 width: 84.26%;
@@ -525,4 +525,13 @@
   :focus{
     outline:none !important
   }
+}
+/* Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }

@@ -6,8 +6,8 @@ import { FieldSet } from './fieldset';
 import CustomElement from './form-elements/custom-element';
 
 const {
-  Header, Paragraph, Label, LineBreak, TextInput, DynamicInput, AmountInput, DocumentSelect, DynamicMultiInput, TableInput, PasswordInput, MultiFileUpload, EmailInput, PhoneNumber, NumberInput, TextArea, Dropdown, SmartAdaptorDropdown, Checkboxes,
-  DatePicker, RadioButtons, Image, Rating, Tags, Signature, HyperLink, Download, Camera, Range, FileUpload,
+  Header, Paragraph, Label, LineBreak, TextInput, DynamicInput, AmountInput, DocumentSelect, DynamicMultiInput, DataGridInput, CustomSelect, CustomDatePicker, TableInput, CascadeSelect, PasswordInput, MultiFileUpload, EmailInput, PhoneNumber, NumberInput, TextArea, Dropdown, SmartAdaptorDropdown, Checkboxes,
+  DatePicker, RadioButtons, RadioButton, Image, Rating, Tags, Signature, HyperLink, Download, Camera, Range, FileUpload,
 } = BaseFormElements;
 
 const FormElements = {};
@@ -20,7 +20,11 @@ FormElements.TextInput = SortableElement(TextInput);
 FormElements.DynamicInput = SortableElement(DynamicInput);
 FormElements.AmountInput = SortableElement(AmountInput);
 FormElements.DocumentSelect = SortableElement(DocumentSelect);
+FormElements.CascadeSelect = SortableElement(CascadeSelect);
 FormElements.DynamicMultiInput = SortableElement(DynamicMultiInput);
+FormElements.DataGridInput = SortableElement(DataGridInput);
+FormElements.CustomSelect = SortableElement(CustomSelect);
+FormElements.CustomDatePicker = SortableElement(CustomDatePicker);
 FormElements.TableInput = SortableElement(TableInput);
 FormElements.PasswordInput = SortableElement(PasswordInput);
 FormElements.MultiFileUpload = SortableElement(MultiFileUpload);
@@ -34,6 +38,7 @@ FormElements.Signature = SortableElement(Signature);
 FormElements.Checkboxes = SortableElement(Checkboxes);
 FormElements.DatePicker = SortableElement(DatePicker);
 FormElements.RadioButtons = SortableElement(RadioButtons);
+FormElements.RadioButton = SortableElement(RadioButton);
 FormElements.Image = SortableElement(Image);
 FormElements.Rating = SortableElement(Rating);
 FormElements.Tags = SortableElement(Tags);

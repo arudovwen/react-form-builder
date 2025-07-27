@@ -68,7 +68,7 @@ export default class Demobar extends React.Component {
 
   // eslint-disable-next-line no-unused-vars
   _onSubmit(data) {
-    // console.log('onSubmit', data);
+    console.log('onSubmit', data);
     // Place code to post json data to server here
   }
 
@@ -95,10 +95,10 @@ export default class Demobar extends React.Component {
     return (
       <div className="clearfix" style={{ margin: '10px', width: '70%' }}>
         <h4 className="float-left">Preview</h4>
-        <button className="btn btn-primary float-right" style={{ marginRight: '10px' }} onClick={() => this.showPreview()}>Preview Form</button>
-        <button className="btn btn-default float-right" style={{ marginRight: '10px' }} onClick={() => this.showShortPreview()}>Alternate/Short Form</button>
-        <button className="btn btn-default float-right" style={{ marginRight: '10px' }} onClick={() => this.showRoPreview()}>Read Only Form</button>
-        <button className="btn btn-default float-right" style={{ marginRight: '10px' }} onClick={() => this.saveFormData()}>Save Form</button>
+        <button className="float-right btn btn-primary" style={{ marginRight: '10px' }} onClick={() => this.showPreview()}>Preview Form</button>
+        <button className="float-right btn btn-default" style={{ marginRight: '10px' }} onClick={() => this.showShortPreview()}>Alternate/Short Form</button>
+        <button className="float-right btn btn-default" style={{ marginRight: '10px' }} onClick={() => this.showRoPreview()}>Read Only Form</button>
+        <button className="float-right btn btn-default" style={{ marginRight: '10px' }} onClick={() => this.saveFormData()}>Save Form</button>
 
         { this.state.previewVisible &&
           <div className={modalClass} role="dialog">
@@ -113,7 +113,7 @@ export default class Demobar extends React.Component {
                   form_action="/api/form"
                   form_method="POST"
                   // skip_validations={true}
-                  // onSubmit={this._onSubmit}
+                  onSubmit={this._onSubmit}
                   variables={this.props.variables}
                   data={this.state.data}
                   locale='en'/>
@@ -155,7 +155,7 @@ export default class Demobar extends React.Component {
         { this.state.shortPreviewVisible &&
           <div className={shortModalClass}>
             <div className="modal-dialog modal-lg">
-              <div className="modal-content border border-light p-3 mb-4">
+              <div className="p-3 mb-4 border modal-content border-light">
                 <ReactFormGenerator
                   download_path=""
                   back_action=""

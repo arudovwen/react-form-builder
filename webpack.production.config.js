@@ -41,33 +41,32 @@ module.exports = {
   },
 
   module: {
-    rules: [
+   rules: [
       {
+        test: /\.(js|jsx)$/,
         exclude: /node_modules/,
-        test: /\.js$|.jsx?$/,
-        use: [
-          { loader: 'babel-loader' }
-        ]
+        use: ['babel-loader'],
       },
       {
-        test: /\.scss$/,
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader'],
+      },
+      {
+        test: /\.scss$/i,
         use: [
+          'style-loader',
+          'css-loader',
           {
-            loader: 'style-loader'
-          },
-          {
-            loader: 'css-loader'
-          },
-          {
-            loader: 'sass-loader', options: {
+            loader: 'sass-loader',
+            options: {
               sassOptions: {
                 includePaths: ['./node_modules'],
               },
-            }
-          }
-        ]
+            },
+          },
+        ],
       },
-    ]
+    ],
   },
   performance: {
     hints: false

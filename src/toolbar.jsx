@@ -75,16 +75,6 @@ class Toolbar extends React.Component {
             text: intl.formatMessage({ id: 'place-holder-option-1' }),
             key: `dropdown_option_${ID.uuid()}`,
           },
-          {
-            value: 'place_holder_option_2',
-            text: intl.formatMessage({ id: 'place-holder-option-2' }),
-            key: `dropdown_option_${ID.uuid()}`,
-          },
-          {
-            value: 'place_holder_option_3',
-            text: intl.formatMessage({ id: 'place-holder-option-3' }),
-            key: `dropdown_option_${ID.uuid()}`,
-          },
         ];
       case 'Tags':
         return [
@@ -96,11 +86,6 @@ class Toolbar extends React.Component {
           {
             value: 'place_holder_tag_2',
             text: intl.formatMessage({ id: 'place-holder-tag-2' }),
-            key: `tags_option_${ID.uuid()}`,
-          },
-          {
-            value: 'place_holder_tag_3',
-            text: intl.formatMessage({ id: 'place-holder-tag-3' }),
             key: `tags_option_${ID.uuid()}`,
           },
         ];
@@ -116,11 +101,6 @@ class Toolbar extends React.Component {
             text: intl.formatMessage({ id: 'place-holder-option-2' }),
             key: `checkboxes_option_${ID.uuid()}`,
           },
-          {
-            value: 'place_holder_option_3',
-            text: intl.formatMessage({ id: 'place-holder-option-3' }),
-            key: `checkboxes_option_${ID.uuid()}`,
-          },
         ];
       case 'RadioButtons':
         return [
@@ -134,9 +114,17 @@ class Toolbar extends React.Component {
             text: intl.formatMessage({ id: 'place-holder-option-2' }),
             key: `radiobuttons_option_${ID.uuid()}`,
           },
+        ];
+      case 'RadioButton':
+        return [
           {
-            value: 'place_holder_option_3',
-            text: intl.formatMessage({ id: 'place-holder-option-3' }),
+            value: 'place_holder_option_1',
+            text: intl.formatMessage({ id: 'place-holder-option-1' }),
+            key: `radiobuttons_option_${ID.uuid()}`,
+          },
+          {
+            value: 'place_holder_option_2',
+            text: intl.formatMessage({ id: 'place-holder-option-2' }),
             key: `radiobuttons_option_${ID.uuid()}`,
           },
         ];
@@ -182,6 +170,21 @@ class Toolbar extends React.Component {
         label: intl.formatMessage({ id: 'place-holder-label' }),
         field_name: 'dropdown_',
         options: [],
+        canReadOnly: true,
+      },
+      {
+        key: 'CascadeSelect',
+        canHaveAnswer: true,
+        name: 'Cascade Select',
+        label: 'Select Label',
+        icon: 'far fa-caret-square-down',
+        field_name: 'cascade_select_',
+        firstLabel: '',
+        secondLabel: '',
+        firstDropdownOptions: [],
+        secondDropdownOptions: [],
+        canHandleMultiOptions: true,
+        canReadOnly: true,
       },
       {
         key: 'SmartAdaptorDropdown',
@@ -191,7 +194,37 @@ class Toolbar extends React.Component {
         label: intl.formatMessage({ id: 'place-holder-label' }),
         field_name: 'smartadaptor_dropdown_',
         options: [],
+        canReadOnly: true,
       },
+      {
+        key: 'CustomSelect',
+        name: 'Dropdown With Search',
+        label: 'Select Label',
+        field_name: 'custom_select_',
+        icon: 'far fa-caret-square-down',
+        canHaveAnswer: true,
+        options: [],
+        optionsApiUrl: '',
+        canReadOnly: true,
+      },
+
+      {
+        key: 'DatePicker',
+        name: 'DatePicker',
+        label: 'Date Label',
+        field_name: 'custom_datepicker_',
+        icon: 'far fa-caret-square-down',
+        canHaveAnswer: true,
+        canDefaultToday: true,
+        canReadOnly: true,
+        dateFormat: 'MM/dd/yyyy',
+        timeFormat: 'hh:mm aa',
+        showTimeSelect: false,
+        showTimeSelectOnly: false,
+        showTimeInput: false,
+        canSelectDateFormat: true,
+      },
+
       {
         key: 'Tags',
         canHaveAnswer: true,
@@ -200,6 +233,7 @@ class Toolbar extends React.Component {
         label: intl.formatMessage({ id: 'place-holder-label' }),
         field_name: 'tags_',
         options: [],
+        canReadOnly: true,
       },
       {
         key: 'Checkboxes',
@@ -209,15 +243,17 @@ class Toolbar extends React.Component {
         label: intl.formatMessage({ id: 'place-holder-label' }),
         field_name: 'checkboxes_',
         options: [],
+        canReadOnly: true,
       },
       {
-        key: 'RadioButtons',
+        key: 'RadioButton',
         canHaveAnswer: true,
-        name: intl.formatMessage({ id: 'multiple-choice' }),
+        name: 'Radio Selection',
         icon: 'far fa-dot-circle',
         label: intl.formatMessage({ id: 'place-holder-label' }),
-        field_name: 'radiobuttons_',
+        field_name: 'radiobutton_',
         options: [],
+        canReadOnly: true,
       },
       {
         key: 'TextInput',
@@ -226,6 +262,7 @@ class Toolbar extends React.Component {
         label: intl.formatMessage({ id: 'place-holder-label' }),
         icon: 'fas fa-font',
         field_name: 'text_input_',
+        canReadOnly: true,
       },
       {
         key: 'AmountInput',
@@ -236,6 +273,7 @@ class Toolbar extends React.Component {
         field_name: 'amount_input_',
         canToggleNegative: true,
         toggleNegative: false,
+        canReadOnly: true,
       },
       {
         key: 'DynamicInput',
@@ -247,6 +285,8 @@ class Toolbar extends React.Component {
         canHaveMaxLength: true,
         canMakeApiValidation: true,
         maxLength: null,
+        canMapFields: true,
+        canReadOnly: true,
       },
       {
         key: 'PasswordInput',
@@ -259,6 +299,7 @@ class Toolbar extends React.Component {
         canTogglePassword: true,
         togglePassword: true,
         maxLength: null,
+        canReadOnly: true,
       },
       {
         key: 'DocumentSelect',
@@ -269,7 +310,9 @@ class Toolbar extends React.Component {
         field_name: 'document_select_',
         canSelectDocuments: true,
         documentId: null,
+        canReadOnly: true,
       },
+
       {
         key: 'TableInput',
         canHaveAnswer: false,
@@ -279,6 +322,18 @@ class Toolbar extends React.Component {
         field_name: 'table_input_',
         canHaveDenonimator: true,
         denominators: null,
+        canReadOnly: true,
+      },
+      {
+        key: 'DataGridInput',
+        canHaveAnswer: false,
+        name: 'Data Grid Input',
+        label: 'Data Grid Input',
+        icon: 'far fa-caret-square-down',
+        field_name: 'data_grid_input_',
+        canHaveDataColumns: true,
+        canReadOnly: true,
+        dataColumns: [],
       },
       {
         key: 'DynamicMultiInput',
@@ -288,6 +343,7 @@ class Toolbar extends React.Component {
         icon: 'far fa-caret-square-down',
         field_name: 'dynamic_multi_input_',
         canHaveDynamicInputOptions: true,
+        canReadOnly: true,
         dynamicInputOptions: [
           {
             key: 'key',
@@ -304,6 +360,7 @@ class Toolbar extends React.Component {
         label: intl.formatMessage({ id: 'place-holder-email' }),
         icon: 'fas fa-envelope',
         field_name: 'email_input_',
+        canReadOnly: true,
       },
       {
         key: 'NumberInput',
@@ -312,6 +369,7 @@ class Toolbar extends React.Component {
         label: intl.formatMessage({ id: 'place-holder-label' }),
         icon: 'fas fa-plus',
         field_name: 'number_input_',
+        canReadOnly: true,
       },
       {
         key: 'FileUpload',
@@ -319,6 +377,7 @@ class Toolbar extends React.Component {
         icon: 'fas fa-file',
         label: intl.formatMessage({ id: 'place-holder-label' }),
         field_name: 'file_upload_',
+        canReadOnly: true,
       },
       {
         key: 'MultiFileUpload',
@@ -326,6 +385,7 @@ class Toolbar extends React.Component {
         icon: 'fas fa-file',
         label: 'Multi File Upload',
         field_name: 'multi_file_upload_',
+        canReadOnly: true,
       },
       {
         key: 'PhoneNumber',
@@ -334,6 +394,7 @@ class Toolbar extends React.Component {
         label: intl.formatMessage({ id: 'place-holder-phone-number' }),
         icon: 'fas fa-phone',
         field_name: 'phone_input_',
+        canReadOnly: true,
       },
       {
         key: 'TextArea',
@@ -342,6 +403,7 @@ class Toolbar extends React.Component {
         label: intl.formatMessage({ id: 'place-holder-label' }),
         icon: 'fas fa-text-height',
         field_name: 'text_area_',
+        canReadOnly: true,
       },
       {
         key: 'FieldSet',
@@ -367,20 +429,7 @@ class Toolbar extends React.Component {
       //   icon: 'fas fa-star',
       //   field_name: 'rating_',
       // },
-      {
-        key: 'DatePicker',
-        canDefaultToday: true,
-        canReadOnly: true,
-        dateFormat: 'MM/dd/yyyy',
-        timeFormat: 'hh:mm aa',
-        showTimeSelect: false,
-        showTimeSelectOnly: false,
-        showTimeInput: false,
-        name: intl.formatMessage({ id: 'date' }),
-        icon: 'far fa-calendar-alt',
-        label: intl.formatMessage({ id: 'place-holder-label' }),
-        field_name: 'date_picker_',
-      },
+
       {
         key: 'Signature',
         canReadOnly: true,
@@ -419,6 +468,7 @@ class Toolbar extends React.Component {
         max_value: 5,
         min_label: intl.formatMessage({ id: 'easy' }),
         max_label: intl.formatMessage({ id: 'difficult' }),
+        canReadOnly: true,
       },
       // {
       //   key: 'Camera',
@@ -519,8 +569,12 @@ class Toolbar extends React.Component {
     if (item.canToggleNegative) {
       elementOptions.canToggleNegative = item.canToggleNegative;
     }
+     if (item.canMapFields) {
+      elementOptions.canMapFields = item.canMapFields;
+    }
     if (item.canReadOnly) {
       elementOptions.readOnly = false;
+      elementOptions.isReadOnly = false;
     }
 
     if (item.canDefaultToday) {
@@ -551,15 +605,34 @@ class Toolbar extends React.Component {
     if (item.canSelectDocuments) {
       elementOptions.canSelectDocuments = item.canSelectDocuments;
     }
+    if (item.canSelectDateFormat) {
+      elementOptions.canSelectDateFormat = item.canSelectDateFormat;
+    }
     if (item.canHaveDenonimator) {
       elementOptions.canHaveDenonimator = item.canHaveDenonimator;
     }
     if (item.canHaveDynamicInputOptions) {
-      elementOptions.canHaveDynamicInputOptions = item.canHaveDynamicInputOptions;
+      elementOptions.canHaveDynamicInputOptions =
+        item.canHaveDynamicInputOptions;
+    }
+     if (item.canHaveDataColumns) {
+      elementOptions.canHaveDataColumns =
+        item.canHaveDataColumns;
     }
 
+    if (item.canHandleMultiOptions) {
+      elementOptions.canHandleMultiOptions = item.canHandleMultiOptions;
+    }
     elementOptions.denominators = item.denominators;
+    elementOptions.mappedFields = item.mappedFields;
     elementOptions.dynamicInputOptions = item.dynamicInputOptions;
+    elementOptions.dataColumns = item.dataColumns;
+
+    elementOptions.optionsApiUrl = item.optionsApiUrl;
+    elementOptions.firstLabel = item.firstLabel;
+    elementOptions.secondLabel = item.secondLabel;
+    elementOptions.firstDropdownOptions = item.firstDropdownOptions;
+    elementOptions.secondDropdownOptions = item.secondDropdownOptions;
 
     elementOptions.canHavePageBreakBefore =
       item.canHavePageBreakBefore !== false;
@@ -653,7 +726,7 @@ class Toolbar extends React.Component {
   render() {
     const { items, grouped, groupKeys } = buildGroupItems(this.state.items);
     return (
-      <div className="col-md-3 react-form-builder-toolbar float-right">
+      <div className="float-right col-md-3 react-form-builder-toolbar">
         <h4>{this.props.intl.formatMessage({ id: 'toolbox' })}</h4>
         <ul>
           {items.map(this.renderItem)}

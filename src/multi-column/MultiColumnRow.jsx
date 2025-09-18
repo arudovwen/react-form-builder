@@ -71,7 +71,7 @@ const ThreeColumnRow = ({ data, class_name, ...rest }) => {
 
 const MultiColumnRow = ({ data, ...rest }) => {
   const colCount = data.col_count || 4;
-  const className = data.class_name || (colCount === 4 ? 'col-md-3' : 'col');
+  const className = data.class_name || (colCount === 4 ? 'col-md-3 ' : 'col');
   if (!data.childItems) {
     // eslint-disable-next-line no-param-reassign
     data.childItems = Array.from({length: colCount}, (v, i) => null);

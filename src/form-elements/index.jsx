@@ -21,30 +21,51 @@ import ImageViewer from "../ImageViewer";
 import TableInputElement from "../TableInputElement";
 import UniversalFileViewer from "../DocumentViewer";
 import DynamicInputList from "../DynamicInput";
-import DataGrid from "./DataGrid"
+import DataGrid from "./DataGrid";
 import CustomSelectComponent from "./CustomSearchSelect";
-// import CustomDatePickerComponent from "./CutomDatePicker";
 import CascadeDropdown from "./cascade-dropdown";
+import ArithmeticComponentView from "./ArithmeticComponentView";
 
 const FormElements = {};
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const defaultFileType =
-  "image, application/pdf, application/msword, " +
+  "image/jpeg, image/png, image/gif, image/webp, image/svg+xml, image/bmp, image/tiff, image/x-icon, image/heic, " +
+  "application/pdf, application/msword, " +
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document, " +
   "application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, " +
-  "application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  "application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation, " +
+  "text/csv";
 
 function isValidGuid(guid) {
   const guidPattern =
     /^[{]?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}[}]?$/;
   return guidPattern.test(guid);
 }
+function getAllFieldValues(data, values) {
+  if (!Array.isArray(data) || typeof values !== "object" || !values) {
+    return [];
+  }
+
+  let result = [];
+
+  for (const item of data) {
+    if (
+      item.field_name &&
+      values.hasOwnProperty(item.field_name) &&
+      values[item.field_name]
+    ) {
+      result.push(values[item.field_name]);
+    }
+  }
+
+  return result;
+}
 const validateFile = (file, fileType) => {
   if (file.size > MAX_FILE_SIZE) {
     return "File size exceeds 5MB limit";
   }
 
-  if (fileType && !file.type.match(fileType || defaultFileType)) {
+  if (fileType && !fileType.includes(file.type)) {
     return "Invalid file type";
   }
 
@@ -154,7 +175,7 @@ class LineBreak extends React.Component {
     );
   }
 }
-// https://reqres.in/api/users
+
 class DynamicInput extends React.Component {
   constructor(props) {
     super(props);
@@ -248,7 +269,7 @@ class DynamicInput extends React.Component {
             errorText: "",
             description: data.data?.description || data?.description,
           });
-          console.log({ jfgjg: data.data?.description || data?.description });
+
           // Check if responseType is object and process the description
           if (responseType === "object") {
             const ObjData = data.data?.description || data?.description;
@@ -326,11 +347,10 @@ class DynamicInput extends React.Component {
   // Handle input changes and invoke the debounced validation function
   handleChange = (event) => {
     const { value } = event.target;
-    const stringValue = this.getAllFieldValues(
+    const stringValue = getAllFieldValues(
       this.props.data.mappedFields,
       this.props.resultData
     ).join("/");
-    console.log({ stringValue });
     this.debouncedValidateError(`${value}/${stringValue}`);
   };
 
@@ -350,31 +370,10 @@ class DynamicInput extends React.Component {
       this.debouncedValidateInput(value);
     }
   };
-  getAllFieldValues(data, values) {
-    if (!Array.isArray(data) || typeof values !== "object" || !values) {
-      return [];
-    }
-
-    let result = [];
-
-    for (const item of data) {
-      if (
-        item.field_name &&
-        values.hasOwnProperty(item.field_name) &&
-        values[item.field_name]
-      ) {
-        result.push(values[item.field_name]);
-      }
-    }
-
-    return result;
-  }
 
   render() {
-    const { data, mutable, defaultValue, read_only, style, resultData } =
-      this.props;
-    const { field_name, maxLength, responseType, allowEdit, mappedFields } =
-      data;
+    const { data, mutable, defaultValue, read_only, style } = this.props;
+    const { field_name, maxLength, responseType, allowEdit } = data;
 
     // Default props setup for the input field
     const props = {
@@ -400,64 +399,64 @@ class DynamicInput extends React.Component {
     function addSpaceToUppercase(str) {
       return str.replace(/([A-Z])/g, " $1").trim();
     }
-  function isImage(value) {
-  if (!value || typeof value !== 'string') return false;
+    function isImage(value) {
+      if (!value || typeof value !== "string") return false;
 
-  // Matches data URLs for common image types
-  const base64DataUrlPattern = /^data:image\/(jpeg|jpg|png|gif|bmp|webp);base64,/i;
+      // Matches data URLs for common image types
+      const base64DataUrlPattern =
+        /^data:image\/(jpeg|jpg|png|gif|bmp|webp);base64,/i;
 
-  // Matches raw base64 string for known image signatures
-  // JPEG usually starts with /9j/, PNG with iVBOR...
-  const rawBase64ImageHeaders = [
-    /^\/9j\//,               // JPEG
-    /^iVBOR/,                // PNG
-    /^R0lGOD/,               // GIF
-    /^Qk0/,                  // BMP
-    /^UklGR/,                // WebP
-  ];
+      // Matches raw base64 string for known image signatures
+      // JPEG usually starts with /9j/, PNG with iVBOR...
+      const rawBase64ImageHeaders = [
+        /^\/9j\//, // JPEG
+        /^iVBOR/, // PNG
+        /^R0lGOD/, // GIF
+        /^Qk0/, // BMP
+        /^UklGR/, // WebP
+      ];
 
-  // Matches raw base64 string of sufficient length (generic fallback)
-  const rawBase64Pattern = /^[A-Za-z0-9+/]{100,}={0,2}$/;
+      // Matches raw base64 string of sufficient length (generic fallback)
+      const rawBase64Pattern = /^[A-Za-z0-9+/]{100,}={0,2}$/;
 
-  // Matches image file URLs ending with common extensions
-  const urlPattern = /\.(jpeg|jpg|png|gif|bmp|webp)(\?.*)?$/i;
+      // Matches image file URLs ending with common extensions
+      const urlPattern = /\.(jpeg|jpg|png|gif|bmp|webp)(\?.*)?$/i;
 
-  // Check all patterns
-  return (
-    base64DataUrlPattern.test(value) ||
-    urlPattern.test(value) ||
-    rawBase64Pattern.test(value) ||
-    rawBase64ImageHeaders.some((pattern) => pattern.test(value))
-  );
-}
-function getImageDataUrl(rawBase64) {
-  if (!rawBase64 || typeof rawBase64 !== 'string') return null;
+      // Check all patterns
+      return (
+        base64DataUrlPattern.test(value) ||
+        urlPattern.test(value) ||
+        rawBase64Pattern.test(value) ||
+        rawBase64ImageHeaders.some((pattern) => pattern.test(value))
+      );
+    }
+    function getImageDataUrl(rawBase64) {
+      if (!rawBase64 || typeof rawBase64 !== "string") return null;
 
-  // Trim and take first few chars for detection
-  const header = rawBase64.substring(0, 10);
+      // Trim and take first few chars for detection
+      const header = rawBase64.substring(0, 10);
 
-  let mimeType = null;
+      let mimeType = null;
 
-  if (header.startsWith('/9j/')) {
-    mimeType = 'image/jpeg';
-  } else if (header.startsWith('iVBOR')) {
-    mimeType = 'image/png';
-  } else if (header.startsWith('R0lGOD')) {
-    mimeType = 'image/gif';
-  } else if (header.startsWith('Qk')) {
-    mimeType = 'image/bmp';
-  } else if (header.startsWith('UklGR')) {
-    mimeType = 'image/webp';
-  }
+      if (header.startsWith("/9j/")) {
+        mimeType = "image/jpeg";
+      } else if (header.startsWith("iVBOR")) {
+        mimeType = "image/png";
+      } else if (header.startsWith("R0lGOD")) {
+        mimeType = "image/gif";
+      } else if (header.startsWith("Qk")) {
+        mimeType = "image/bmp";
+      } else if (header.startsWith("UklGR")) {
+        mimeType = "image/webp";
+      }
 
-  if (mimeType) {
-    return `data:${mimeType};base64,${rawBase64}`;
-  } else {
-    console.warn('Unknown image type or invalid base64');
-    return rawBase64;
-  }
-}
-
+      if (mimeType) {
+        return `data:${mimeType};base64,${rawBase64}`;
+      } else {
+        console.warn("Unknown image type or invalid base64");
+        return rawBase64;
+      }
+    }
 
     // https://api.dev.workflow.kusala.com.ng/api/v1/WorkFlows/validate
     //  https://qa-document-management.sterling.ng/api/v1/docs/preview/243bf8a6-7903-4a8e-bd2a-943558c58a69?documentType=Others
@@ -514,7 +513,9 @@ function getImageDataUrl(rawBase64) {
                       {/* Show Guid - {getFileUrl(this.state.description[item])} */}
                       {this.state.objectFileData[item] ? (
                         <ImageViewer
-                          imageUrl={getImageDataUrl(this.state.objectFileData[item])}
+                          imageUrl={getImageDataUrl(
+                            this.state.objectFileData[item]
+                          )}
                         />
                       ) : (
                         "No file found"
@@ -534,6 +535,8 @@ function getImageDataUrl(rawBase64) {
 class DocumentSelect extends React.Component {
   constructor(props) {
     super(props);
+    console.log({props});
+    
     this.state = {
       errorText: "",
       successText: "",
@@ -598,7 +601,7 @@ class DocumentSelect extends React.Component {
         headers: { Authorization: `Bearer ${token}` },
       };
       const response = await axios.get(
-        `https://api.dev.document.kusala.com.ng/api/v1/DocumentSignature/position-signature-status?documentId=${id}&position=${position}&requestId=${this.requestId}&fromWorkflow=true`,
+        `${this.props.apiBaseUrl}/documents/v1/DocumentSignature/position-signature-status?documentId=${id}&position=${position}&requestId=${this.requestId}&fromWorkflow=true`,
         config
       );
 
@@ -634,7 +637,7 @@ class DocumentSelect extends React.Component {
       };
 
       const response = await axios.get(
-        `https://api.dev.document.kusala.com.ng/api/v1/DocumentSignature/get-signatures-request?documentId=${id}&requestId=${this.requestId}`,
+        `${this.props.apiBaseUrl}/documents/v1/DocumentSignature/get-signatures-request?documentId=${id}&requestId=${this.requestId}`,
         config
       );
 
@@ -813,6 +816,8 @@ class TextInput extends React.Component {
     props.type = "text";
     props.className = "form-control";
     props.name = this.props.data.field_name;
+    props.maxLength = this.props.data.maxLength;
+    props.minLength = this.props.data.minLength;
     if (this.props.mutable) {
       props.defaultValue = this.props.defaultValue;
       props.ref = this.inputField;
@@ -832,13 +837,16 @@ class TextInput extends React.Component {
     //  async function validateInput(){
 
     //  }
+    console.log({ props: this.props.data });
+
     return (
       <div style={{ ...this.props.style }} className={baseClasses}>
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
+
           <input {...props} />
-        </div>
+        </div>{" "}
       </div>
     );
   }
@@ -974,118 +982,54 @@ class CascadeSelect extends React.Component {
     );
   }
 }
-// class CustomDatePicker extends React.Component {
-//   constructor(props) {
-//     super(props);
-//     this.inputField = React.createRef();
-//     this.state = {
-//       dataList: this.props.defaultValue || [],
-//     };
-//   }
-
-//   render() {
-//     const props = {};
-//     props.type = "text";
-//     props.className = "form-control";
-//     props.name = this.props.data.field_name;
-//     let tempDefaultValue = new Date();
-
-//     if (this.props.mutable) {
-//       props.defaultValue = this.props.defaultValue;
-//       props.ref = this.inputField;
-//     }
-
-//     let baseClasses = "SortableItem rfb-item";
-//     if (this.props.data.pageBreakBefore) {
-//       baseClasses += " alwaysbreak";
-//     }
-
-//     if (
-//       (this.props.data?.isReadOnly || this.props?.read_only) &&
-//       !this.props.data?.allowEdit
-//     ) {
-//       props.disabled = "disabled";
-//     }
-
-//     if (this.props.defaultValue) {
-//       tempDefaultValue = this.props.defaultValue || new Date();
-//     }
-
-//     return (
-//       <div style={{ ...this.props.style }} className={baseClasses}>
-//         <ComponentHeader {...this.props} />
-//         <div className="form-group">
-//           <ComponentLabel {...this.props} />
-//           <CustomDatePickerComponent
-//             defaultValue={tempDefaultValue}
-//             readOnly={
-//               (this.props.data?.isReadOnly || this.props?.read_only) &&
-//               !this.props.data?.allowEdit
-//             }
-//             onGetValue={(value) => {
-//               this.setState({ dataList: value });
-//             }}
-//             dateFormat={this.props.data?.dateFormat || "dd/MM/yyyy"}
-//           />
-//         </div>
-//       </div>
-//     );
-//   }
-// }
 class CustomSelect extends React.Component {
   constructor(props) {
     super(props);
     this.inputField = React.createRef();
     this.state = {
-      dataList: this.props.defaultValue || [],
+      dataList: props.defaultValue || [],
     };
   }
 
+  getFilteredOptions = () => {
+    const { data, resultData } = this.props;
+    if (!data?.options) return [];
+
+    if (data?.isCascade) {
+      const dependentValue = resultData?.[data.dependentField];
+      return data.options.filter(
+        (opt) => opt.key?.toString() === dependentValue?.toString()
+      );
+    }
+
+    return data.options;
+  };
+
+  isReadOnly = () => {
+    const { read_only, data } = this.props;
+    return (read_only || data?.isReadOnly) && !data?.allowEdit;
+  };
+
   render() {
-    const props = {};
-    props.type = "text";
-    props.className = "form-control";
-    props.name = this.props.data.field_name;
-    let tempDefaultValue = [];
+    const { data, defaultValue, style, mutable } = this.props;
 
-    const { options } = this.props.data;
-    if (this.props.mutable) {
-      props.defaultValue = this.props.defaultValue;
-      props.ref = this.inputField;
-    }
-
-    let baseClasses = "SortableItem rfb-item";
-    if (this.props.data.pageBreakBefore) {
-      baseClasses += " alwaysbreak";
-    }
-
-    if (
-      (this.props?.read_only || this.props.data?.isReadOnly) &&
-      !this.props.data?.allowEdit
-    ) {
-      props.disabled = "disabled";
-    }
-
-    if (this.props.defaultValue) {
-      tempDefaultValue = this.props.defaultValue || [];
-    }
+    const tempOptions = this.getFilteredOptions();
+    const tempDefaultValue = defaultValue || [];
+    const baseClasses =
+      "SortableItem rfb-item" + (data.pageBreakBefore ? " alwaysbreak" : "");
 
     return (
-      <div style={{ ...this.props.style }} className={baseClasses}>
+      <div style={{ ...style }} className={baseClasses}>
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
           <CustomSelectComponent
-            options={options}
+            options={tempOptions}
             defaultValue={tempDefaultValue}
-            readOnly={
-              (this.props?.read_only || this.props.data?.isReadOnly) &&
-              !this.props.data?.allowEdit
-            }
-            url={this.props.data?.optionsApiUrl}
-            onGetValue={(value) => {
-              this.setState({ dataList: value });
-            }}
+            readOnly={this.isReadOnly()}
+            url={data?.optionsApiUrl}
+            ref={mutable ? this.inputField : undefined}
+            onGetValue={(value) => this.setState({ dataList: value })}
           />
         </div>
       </div>
@@ -1205,6 +1149,7 @@ class DataGridInput extends React.Component {
             }}
             columns={dataColumns || []}
             value={tempDefaultValue}
+            url={this.props.data.url}
             isReadOnly={
               (this.props?.read_only || this.props.data?.isReadOnly) &&
               !this.props.data?.allowEdit
@@ -1215,6 +1160,85 @@ class DataGridInput extends React.Component {
     );
   }
 }
+
+class ArithmeticInput extends React.Component {
+  constructor(props) {
+    super(props);
+    this.inputField = React.createRef();
+    this.state = {
+      dataList: String(props.defaultValue ?? ""), // keep as string
+    };
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.defaultValue !== this.props.defaultValue) {
+      this.setState({ dataList: String(this.props.defaultValue ?? "") });
+    }
+  }
+
+  render() {
+    const {
+      data = {},
+      mutable,
+      defaultValue,
+      style,
+      read_only,
+      resultData,
+      handleChange,
+      ...rest
+    } = this.props;
+
+    const {
+      allowEdit,
+      isReadOnly: itemReadOnly,
+      field_name,
+      pageBreakBefore,
+      calculationFields,
+    } = data;
+
+    const isDisabled = !!((read_only || itemReadOnly) && !allowEdit);
+    const baseClasses = pageBreakBefore
+      ? "SortableItem rfb-item alwaysbreak"
+      : "SortableItem rfb-item";
+
+    return (
+      <div style={style} className={baseClasses} {...rest}>
+        <ComponentHeader {...this.props} />
+        <div className="form-group">
+          <ComponentLabel {...this.props} />
+
+          <ArithmeticComponentView
+            // Prefer controlled API if supported: value={this.state.dataList}
+            defaultValue={defaultValue || ""}
+            mappedFields={calculationFields || []}
+            resultData={resultData || []}
+            isReadOnly={isDisabled}
+            onChange={(next) => {
+              const str = String(next ?? "");
+              this.setState({ dataList: str }, () => {
+                // notify form so it can re-collect values
+                handleChange?.(str);
+              });
+            }}
+          />
+
+          <input
+            type="text"
+            name={field_name}
+            ref={mutable ? this.inputField : undefined}
+            className="form-control field-control"
+            disabled={isDisabled}
+            readOnly={isDisabled}
+            value={this.state.dataList}
+            // This input mirrors ArithmeticComponentView; user typing is ignored on purpose.
+            onChange={() => {}}
+          />
+        </div>
+      </div>
+    );
+  }
+}
+
 class PasswordInput extends React.Component {
   constructor(props) {
     super(props);
@@ -1237,6 +1261,8 @@ class PasswordInput extends React.Component {
     props.type = type;
     props.className = "form-control";
     props.name = this.props.data.field_name;
+    props.maxLength = this.props.data.maxLength;
+    props.minLength = this.props.data.minLength;
     if (this.props.mutable) {
       props.defaultValue = this.props.defaultValue;
       props.ref = this.inputField;
@@ -1284,11 +1310,29 @@ class AmountInput extends React.Component {
     this.inputField = React.createRef();
     this.state = {
       value: this.props.defaultValue || "",
+      error: "",
+      isValid: true,
     };
   }
 
   handleValueChange = (value, name, values) => {
-    this.setState({ value });
+    const numericValue = parseFloat(value);
+
+    // Retrieve min and max value from data
+    const min = this.props.data.minLength ?? null;
+    const max = this.props.data.maxLength ?? null;
+
+    let error = "";
+    let isValid = true;
+    if (min !== null && numericValue < min) {
+      error = `Amount should not be less than ${min}.`;
+      isValid = false;
+    } else if (max !== null && numericValue > max) {
+      error = `Amount should not be more than ${max}.`;
+      isValid = false;
+    }
+
+    this.setState({ value, error, isValid });
     if (this.props.onValueChange) {
       this.props.onValueChange(value, name, values);
     }
@@ -1303,10 +1347,11 @@ class AmountInput extends React.Component {
       name: data.field_name,
       defaultValue: mutable ? defaultValue : undefined,
       ref: mutable ? this.inputField : undefined,
+
       disabled:
         (read_only || isReadOnly) && !allowEdit ? "disabled" : undefined,
     };
-
+    const { value, error } = this.state;
     let baseClasses = "SortableItem rfb-item";
     if (data.pageBreakBefore) {
       baseClasses += " alwaysbreak";
@@ -1320,6 +1365,7 @@ class AmountInput extends React.Component {
           <CurrencyInput
             id="input-example"
             className="form-control"
+            {...inputProps}
             decimalsLimit={6}
             defaultValue={defaultValue}
             onValueChange={this.handleValueChange}
@@ -1333,6 +1379,7 @@ class AmountInput extends React.Component {
             defaultValue={this.state.value}
             className="hidden-input"
           />
+          {error && <small className="mt-1 text-danger">{error}</small>}
         </div>
       </div>
     );
@@ -1390,6 +1437,8 @@ class PhoneNumber extends React.Component {
     props.type = "tel";
     props.className = "form-control";
     props.name = this.props.data.field_name;
+    props.maxLength = this.props.data.maxLength;
+    props.minLength = this.props.data.minLength;
     if (this.props.mutable) {
       props.defaultValue = this.props.defaultValue;
       props.ref = this.inputField;
@@ -1422,29 +1471,52 @@ class PhoneNumber extends React.Component {
 class NumberInput extends React.Component {
   constructor(props) {
     super(props);
+    this.state = {
+      value: props.defaultValue || "",
+      error: "",
+    };
     this.inputField = React.createRef();
   }
 
-  render() {
-    const props = {};
-    props.type = "number";
-    props.className = "form-control";
-    props.name = this.props.data.field_name;
+  handleChange = (e) => {
+    const value = e.target.value;
+    const { minLength, maxLength, field_name } = this.props.data;
 
-    if (this.props.mutable) {
-      props.defaultValue = this.props.defaultValue;
-      props.ref = this.inputField;
+    let error = "";
+    if (value !== "") {
+      const number = parseFloat(value);
+      if (minLength !== undefined && number < minLength) {
+        error = `Value must be at least ${minLength}.`;
+      } else if (maxLength !== undefined && number > maxLength) {
+        error = `Value must be no more than ${maxLength}.`;
+      }
     }
 
-    if (
-      (this.props?.read_only || this.props.data?.isReadOnly) &&
-      !this.props.data?.allowEdit
-    ) {
-      props.disabled = "disabled";
+    this.setState({ value, error });
+  };
+
+  render() {
+    const { value, error } = this.state;
+    const { data, mutable, defaultValue } = this.props;
+
+    const props = {
+      type: "number",
+      className: "form-control",
+      name: data.field_name,
+      max: data.maxLength,
+      min: data.minLength,
+      step: "0.01",
+      onChange: this.handleChange,
+      value: value,
+      ref: this.inputField,
+    };
+
+    if ((this.props.read_only || data?.isReadOnly) && !data?.allowEdit) {
+      props.disabled = true;
     }
 
     let baseClasses = "SortableItem rfb-item";
-    if (this.props.data.pageBreakBefore) {
+    if (data.pageBreakBefore) {
       baseClasses += " alwaysbreak";
     }
 
@@ -1454,6 +1526,7 @@ class NumberInput extends React.Component {
         <div className="form-group">
           <ComponentLabel {...this.props} />
           <input {...props} />
+          {error && <small className="text-danger">{error}</small>}
         </div>
       </div>
     );
@@ -1506,42 +1579,59 @@ class Dropdown extends React.Component {
     this.inputField = React.createRef();
   }
 
+  getFilteredOptions() {
+    const { data, resultData } = this.props;
+    const dependentValue = resultData?.[data?.dependentField];
+
+    if (data?.isCascade) {
+      return (
+        data.options?.filter(
+          (opt) => opt.key?.toString() === dependentValue?.toString()
+        ) || []
+      );
+    }
+    return data.options || [];
+  }
+
   render() {
-    const props = {};
-    props.className = "form-control";
-    props.name = this.props.data.field_name;
+    const { data, defaultValue, mutable, read_only, style } = this.props;
 
-    if (this.props.mutable) {
-      props.defaultValue = this.props.defaultValue;
-      props.ref = this.inputField;
-    }
+    const props = {
+      className: "form-control", // Tailwind will apply via `form-control` utility
+      name: data?.field_name || "",
+      defaultValue: mutable ? defaultValue : undefined,
+      ref: mutable ? this.inputField : undefined,
+      disabled:
+        ((read_only || data?.isReadOnly) && !data?.allowEdit) || undefined,
+    };
 
-    if (
-      (this.props?.read_only || this.props.data?.isReadOnly) &&
-      !this.props.data?.allowEdit
-    ) {
-      props.disabled = "disabled";
-    }
+    const tempOptions = this.getFilteredOptions();
 
-    let baseClasses = "SortableItem rfb-item";
-    if (this.props.data.pageBreakBefore) {
+    // Keep your existing base classes, add Tailwind for consistency
+    let baseClasses = "SortableItem rfb-item relative "; // z-index ensures dropdown stays above everything
+    if (data?.pageBreakBefore) {
       baseClasses += " alwaysbreak";
     }
 
     return (
-      <div style={{ ...this.props.style }} className={baseClasses}>
+      <div style={style} className={baseClasses}>
+        {/* Header Section */}
         <ComponentHeader {...this.props} />
+
         <div className="form-group">
+          {/* Label Section */}
           <ComponentLabel {...this.props} />
+
+          {/* Dropdown */}
           <select {...props}>
-            {this.props.data.options?.map((option) => {
-              const this_key = `preview_${option.key}`;
-              return (
-                <option value={option.value} key={this_key}>
-                  {option.text}
-                </option>
-              );
-            })}
+            <option value="" disabled>
+              Select
+            </option>
+            {tempOptions.map((option) => (
+              <option key={`preview_${option.id}`} value={option.value}>
+                {option.text}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -1583,7 +1673,7 @@ class SmartAdaptorDropdown extends React.Component {
           <ComponentLabel {...this.props} />
           <select {...props}>
             {this.props.data.options?.map((option) => {
-              const this_key = `preview_${option.key}`;
+              const this_key = `preview_${option.id}`;
               return (
                 <option value={option.value} key={this_key}>
                   {option.text}
@@ -2170,6 +2260,8 @@ class FileUpload extends React.Component {
 
   constructor(props) {
     super(props);
+    console.log({props});
+    
     this.state = {
       fileUpload: null,
       fileLoading: false,
@@ -2215,6 +2307,12 @@ class FileUpload extends React.Component {
 
   uploadFile = async (file) => {
     try {
+      const token = window.localStorage.getItem("token");
+
+      const config = {
+        headers: { Authorization: `Bearer ${token}` },
+      };
+
       const validationError = validateFile(file, this.props.data.fileType);
       if (validationError) {
         this.setState({ error: validationError });
@@ -2229,8 +2327,8 @@ class FileUpload extends React.Component {
       };
 
       const response = await axios.post(
-        "https://api.dev.workflow.kusala.com.ng/api/v1/FileUpload/upload-document",
-        data
+        `${this.props.apiBaseUrl}/workflows/api/v1/FileUpload/upload-document`,
+        data,config
       );
 
       this.setState({ fileStatus: "success" });
@@ -2467,14 +2565,20 @@ class MultiFileUpload extends React.Component {
         base64: await this.getBase64(file),
         ext: `.${file.name.split(".").pop()}`,
       };
+      const token = window.localStorage.getItem("token");
+
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      };
 
       const response = await fetch(
-        "https://api.dev.workflow.kusala.com.ng/api/v1/FileUpload/upload-document",
+        `${this.props.apiBaseUrl}/workflows/api/v1/FileUpload/upload-document`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          config,
           body: JSON.stringify(data),
         }
       );
@@ -2796,6 +2900,7 @@ FormElements.LineBreak = LineBreak;
 FormElements.TextInput = TextInput;
 FormElements.DynamicInput = DynamicInput;
 FormElements.AmountInput = AmountInput;
+FormElements.ArithmeticInput = ArithmeticInput;
 FormElements.DocumentSelect = DocumentSelect;
 FormElements.TableInput = TableInput;
 FormElements.CascadeSelect = CascadeSelect;

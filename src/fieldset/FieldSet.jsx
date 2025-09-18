@@ -90,6 +90,7 @@ export default function FieldSetBase(props) {
                     parentIndex={index}
                     editModeOn={editModeOn}
                     _onDestroy={() => removeChild(childData, i)}
+                    duplicateElement={() => props.duplicateElement(i.id)}
                     getDataById={getDataById}
                     setAsChild={setAsChild}
                     seq={seq}

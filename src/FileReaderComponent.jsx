@@ -52,7 +52,7 @@ const FileReaderComponent = ({
         )}
       </div>
       <a
-        href="https://res.cloudinary.com/arudovwen-me/raw/upload/v1750869365/optiontemplate_phj66e.xlsx"
+        href="https://res.cloudinary.com/arudovwen-me/raw/upload/v1754861915/Options_sheet_wnyr4o.xlsx"
         download
         className="mt-1 text-sm text-white text-primary font-weight-medium"
       >

@@ -65,8 +65,8 @@ class ReactFormBuilder extends React.Component {
            </p>
            <Container />
          </div> */}
-            <div className="react-form-builder clearfix">
-              <div>
+            <div className="flex clearfix react-form-builder">
+              {/* <div> */}
                 <Preview
                   files={this.props.files}
                   manualEditModeOff={this.manualEditModeOff.bind(this)}
@@ -84,9 +84,10 @@ class ReactFormBuilder extends React.Component {
                   editElement={this.state.editElement}
                   renderEditForm={this.props.renderEditForm}
                   saveAlways={this.props.saveAlways}
+                  apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}
                 />
                 <Toolbar {...toolbarProps} customItems={this.props.customToolbarItems} />
-              </div>
+              {/* </div> */}
             </div>
           </div>
         </IntlProvider>

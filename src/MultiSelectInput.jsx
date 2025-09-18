@@ -9,7 +9,7 @@ export default function MultiSelectInput({ value = [], onChange, options }) {
     if (onChange) {
       onChange(selectedOptions);
     }
-  }, [selectedOptions, onChange]);
+  }, [selectedOptions]);
 
   // Filter out selected options from dropdown
   const filteredOptions = options.filter(
@@ -66,7 +66,7 @@ export default function MultiSelectInput({ value = [], onChange, options }) {
                 </Listbox.Option>
               ))
             ) : (
-              <div className="px-4 py-2 text-gray-500">All options selected</div>
+              <div className="px-4 py-2 text-gray-500">No option selected</div>
             )}
           </Listbox.Options>
         </div>
@@ -74,11 +74,11 @@ export default function MultiSelectInput({ value = [], onChange, options }) {
 
       {/* List of selected items with remove buttons */}
       {selectedOptions.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 mt-[6px]">
           {selectedOptions.map((opt) => (
             <span
               key={opt.id}
-              className="flex items-center px-2 py-1 text-sm bg-gray-100 border rounded-full"
+              className="flex items-center px-2 py-1 text-xs bg-gray-100 border rounded-full"
             >
               {opt.label}
               <button

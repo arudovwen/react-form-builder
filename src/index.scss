@@ -71,3 +71,8 @@
 .react-datepicker-wrapper {
   width: 100%;
 }
+.date_range{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 12px;
+}

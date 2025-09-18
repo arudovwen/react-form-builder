@@ -19,8 +19,13 @@ class DatePicker extends React.Component {
     let placeholder;
     const { formatMask } = this.state;
     if (dt && dt.target) {
-      placeholder = (dt && dt.target && dt.target.value === '') ? formatMask.toLowerCase() : '';
-      const formattedDate = (dt.target.value) ? format(parseISO(dt.target.value), formatMask) : '';
+      placeholder =
+        dt && dt.target && dt.target.value === ''
+          ? formatMask.toLowerCase()
+          : '';
+      const formattedDate = dt.target.value
+        ? format(parseISO(dt.target.value), formatMask)
+        : '';
       this.setState({
         value: formattedDate,
         internalValue: formattedDate,
@@ -28,7 +33,7 @@ class DatePicker extends React.Component {
       });
     } else {
       this.setState({
-        value: (dt) ? format(dt, formatMask) : '',
+        value: dt ? format(dt, formatMask) : '',
         internalValue: dt,
         placeholder,
       });
@@ -37,9 +42,11 @@ class DatePicker extends React.Component {
 
   static updateFormat(props, oldFormatMask) {
     const { showTimeSelect, showTimeSelectOnly, showTimeInput } = props.data;
-    const dateFormat = showTimeSelect && showTimeSelectOnly ? '' : props.data.dateFormat;
-    const timeFormat = (showTimeSelect || showTimeInput) ? props.data.timeFormat : '';
-    const formatMask = (`${dateFormat} ${timeFormat}`).trim();
+    const dateFormat =
+      showTimeSelect && showTimeSelectOnly ? '' : props.data.dateFormat;
+    const timeFormat =
+      showTimeSelect || showTimeInput ? props.data.timeFormat : '';
+    const formatMask = `${dateFormat} ${timeFormat}`.trim();
     const updated = formatMask !== oldFormatMask;
 
     return { updated, formatMask };
@@ -49,7 +56,10 @@ class DatePicker extends React.Component {
     let value;
     let internalValue;
     const { defaultToday } = props.data;
-    if (defaultToday && (props.defaultValue === '' || props.defaultValue === undefined)) {
+    if (
+      defaultToday &&
+      (props.defaultValue === '' || props.defaultValue === undefined)
+    ) {
       value = format(new Date(), formatMask);
       internalValue = new Date();
     } else {
@@ -79,8 +89,11 @@ class DatePicker extends React.Component {
   // }
 
   static getDerivedStateFromProps(props, state) {
-    const { updated, formatMask } = DatePicker.updateFormat(props, state.formatMask);
-    if ((props.data.defaultToday !== state.defaultToday) || updated) {
+    const { updated, formatMask } = DatePicker.updateFormat(
+      props,
+      state.formatMask,
+    );
+    if (props.data.defaultToday !== state.defaultToday || updated) {
       const newState = DatePicker.updateDateTime(props, state, formatMask);
       return newState;
     }
@@ -88,12 +101,22 @@ class DatePicker extends React.Component {
   }
 
   render() {
-    const { showTimeSelect, showTimeSelectOnly, showTimeInput } = this.props.data;
+    const {
+      showTimeSelect,
+      showTimeSelectOnly,
+      showTimeInput,
+      minDate,
+      maxDate, hidePastDate, hideFutureDate,
+    } = this.props.data;
+    const currentDate = new Date();
     const props = {};
     props.type = 'date';
     props.className = 'form-control';
     props.name = this.props.data?.field_name;
-    const readOnly = this.props.data?.readOnly || this.props?.read_only || this.props?.data?.isReadOnly;
+    const readOnly =
+      this.props.data?.readOnly ||
+      this.props?.read_only ||
+      this.props?.data?.isReadOnly;
     // const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     const placeholderText = this.state.formatMask.toLowerCase();
 
@@ -103,7 +126,9 @@ class DatePicker extends React.Component {
     }
 
     let baseClasses = 'SortableItem rfb-item';
-    if (this.props.data.pageBreakBefore) { baseClasses += ' alwaysbreak'; }
+    if (this.props.data.pageBreakBefore) {
+      baseClasses += ' alwaysbreak';
+    }
 
     return (
       <div className={baseClasses} style={{ ...this.props.style }}>
@@ -111,22 +136,25 @@ class DatePicker extends React.Component {
         <div className="form-group">
           <ComponentLabel {...this.props} />
           <div>
-
-              <ReactDatePicker
-                name={props.name}
-                ref={props.ref}
-                onChange={this.handleChange}
-                selected={this.state.internalValue}
-                todayButton={'Today'}
-                className = "form-control"
-                isClearable={!readOnly}
-                showTimeSelect={showTimeSelect}
-                showTimeSelectOnly={showTimeSelectOnly}
-                showTimeInput={showTimeInput}
-                dateFormat={this.state.formatMask}
-                portalId="root-portal"
-                autoComplete="off"
-                placeholderText={placeholderText} readOnly={readOnly} />
+            <ReactDatePicker
+              name={props.name}
+              ref={props.ref}
+              onChange={this.handleChange}
+              selected={this.state.internalValue}
+              todayButton={'Today'}
+              className="form-control"
+              isClearable={!readOnly}
+              showTimeSelect={showTimeSelect}
+              showTimeSelectOnly={showTimeSelectOnly}
+              showTimeInput={showTimeInput}
+              dateFormat={this.state.formatMask}
+              portalId="root-portal"
+              autoComplete="off"
+              minDate={hidePastDate ? currentDate : minDate}
+              maxDate={hideFutureDate ? currentDate : maxDate}
+              placeholderText={placeholderText}
+              readOnly={readOnly}
+            />
             {/* } */}
           </div>
         </div>

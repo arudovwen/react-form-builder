@@ -73,7 +73,8 @@ class Toolbar extends React.Component {
           {
             value: 'place_holder_option_1',
             text: intl.formatMessage({ id: 'place-holder-option-1' }),
-            key: `dropdown_option_${ID.uuid()}`,
+            id: `dropdown_option_${ID.uuid()}`,
+            key: '',
           },
         ];
       case 'Tags':
@@ -171,6 +172,8 @@ class Toolbar extends React.Component {
         field_name: 'dropdown_',
         options: [],
         canReadOnly: true,
+        canToggleField: true,
+        canUseCascade: true,
       },
       {
         key: 'CascadeSelect',
@@ -185,6 +188,7 @@ class Toolbar extends React.Component {
         secondDropdownOptions: [],
         canHandleMultiOptions: true,
         canReadOnly: true,
+        canToggleField: true,
       },
       {
         key: 'SmartAdaptorDropdown',
@@ -206,6 +210,8 @@ class Toolbar extends React.Component {
         options: [],
         optionsApiUrl: '',
         canReadOnly: true,
+        canToggleField: true,
+        canUseCascade: true,
       },
 
       {
@@ -213,7 +219,7 @@ class Toolbar extends React.Component {
         name: 'DatePicker',
         label: 'Date Label',
         field_name: 'custom_datepicker_',
-        icon: 'far fa-caret-square-down',
+        icon: 'fas fa-calendar',
         canHaveAnswer: true,
         canDefaultToday: true,
         canReadOnly: true,
@@ -223,6 +229,11 @@ class Toolbar extends React.Component {
         showTimeSelectOnly: false,
         showTimeInput: false,
         canSelectDateFormat: true,
+        canToggleField: true,
+        minDate: null,
+        maxDate: null,
+        hideFutureDate: false,
+        hidePastDate: false,
       },
 
       {
@@ -234,6 +245,7 @@ class Toolbar extends React.Component {
         field_name: 'tags_',
         options: [],
         canReadOnly: true,
+        canToggleField: true,
       },
       {
         key: 'Checkboxes',
@@ -244,6 +256,7 @@ class Toolbar extends React.Component {
         field_name: 'checkboxes_',
         options: [],
         canReadOnly: true,
+        canToggleField: true,
       },
       {
         key: 'RadioButton',
@@ -254,6 +267,7 @@ class Toolbar extends React.Component {
         field_name: 'radiobutton_',
         options: [],
         canReadOnly: true,
+        canToggleField: true,
       },
       {
         key: 'TextInput',
@@ -263,6 +277,9 @@ class Toolbar extends React.Component {
         icon: 'fas fa-font',
         field_name: 'text_input_',
         canReadOnly: true,
+        canToggleField: true,
+        canHaveMaxLength: true,
+        canHaveMinLength: true,
       },
       {
         key: 'AmountInput',
@@ -274,19 +291,36 @@ class Toolbar extends React.Component {
         canToggleNegative: true,
         toggleNegative: false,
         canReadOnly: true,
+        canToggleField: true,
+        canHaveMaxLength: true,
+        canHaveMinLength: true,
       },
       {
         key: 'DynamicInput',
         canHaveAnswer: true,
         name: 'Validation Input',
         label: 'Validation Input',
-        icon: 'fas fa-font',
+        icon: 'fas fa-check-square',
         field_name: 'dynamic_input_',
         canHaveMaxLength: true,
+        canHaveMinLength: true,
         canMakeApiValidation: true,
         maxLength: null,
         canMapFields: true,
         canReadOnly: true,
+        canToggleField: true,
+      },
+      {
+        key: 'ArithmeticInput',
+        canHaveAnswer: true,
+        name: 'Field Calculator',
+        label: 'Field Calculator',
+        icon: 'fas fa-calculator',
+        field_name: 'arithmetic_input_',
+        haveArithmetic: true,
+        canReadOnly: true,
+        canMapFields: true,
+        canToggleField: true,
       },
       {
         key: 'PasswordInput',
@@ -296,10 +330,12 @@ class Toolbar extends React.Component {
         icon: 'fas fa-lock',
         field_name: 'password_input_',
         canHaveMaxLength: true,
+        canHaveMinLength: true,
         canTogglePassword: true,
         togglePassword: true,
         maxLength: null,
         canReadOnly: true,
+        canToggleField: true,
       },
       {
         key: 'DocumentSelect',
@@ -311,6 +347,7 @@ class Toolbar extends React.Component {
         canSelectDocuments: true,
         documentId: null,
         canReadOnly: true,
+        canToggleField: true,
       },
 
       {
@@ -318,22 +355,24 @@ class Toolbar extends React.Component {
         canHaveAnswer: false,
         name: 'Table Input',
         label: 'Table Input',
-        icon: 'far fa-caret-square-down',
+        icon: 'fas fa-th',
         field_name: 'table_input_',
         canHaveDenonimator: true,
         denominators: null,
         canReadOnly: true,
+        canToggleField: true,
       },
       {
         key: 'DataGridInput',
         canHaveAnswer: false,
         name: 'Data Grid Input',
         label: 'Data Grid Input',
-        icon: 'far fa-caret-square-down',
+        icon: 'fas fa-th',
         field_name: 'data_grid_input_',
         canHaveDataColumns: true,
         canReadOnly: true,
         dataColumns: [],
+        canToggleField: true,
       },
       {
         key: 'DynamicMultiInput',
@@ -344,6 +383,7 @@ class Toolbar extends React.Component {
         field_name: 'dynamic_multi_input_',
         canHaveDynamicInputOptions: true,
         canReadOnly: true,
+        canToggleField: true,
         dynamicInputOptions: [
           {
             key: 'key',
@@ -361,6 +401,7 @@ class Toolbar extends React.Component {
         icon: 'fas fa-envelope',
         field_name: 'email_input_',
         canReadOnly: true,
+        canToggleField: true,
       },
       {
         key: 'NumberInput',
@@ -370,6 +411,9 @@ class Toolbar extends React.Component {
         icon: 'fas fa-plus',
         field_name: 'number_input_',
         canReadOnly: true,
+        canToggleField: true,
+        canHaveMaxLength: true,
+        canHaveMinLength: true,
       },
       {
         key: 'FileUpload',
@@ -378,6 +422,7 @@ class Toolbar extends React.Component {
         label: intl.formatMessage({ id: 'place-holder-label' }),
         field_name: 'file_upload_',
         canReadOnly: true,
+        canToggleField: true,
       },
       {
         key: 'MultiFileUpload',
@@ -386,6 +431,7 @@ class Toolbar extends React.Component {
         label: 'Multi File Upload',
         field_name: 'multi_file_upload_',
         canReadOnly: true,
+        canToggleField: true,
       },
       {
         key: 'PhoneNumber',
@@ -395,6 +441,9 @@ class Toolbar extends React.Component {
         icon: 'fas fa-phone',
         field_name: 'phone_input_',
         canReadOnly: true,
+        canToggleField: true,
+        canHaveMaxLength: true,
+        canHaveMinLength: true,
       },
       {
         key: 'TextArea',
@@ -404,6 +453,9 @@ class Toolbar extends React.Component {
         icon: 'fas fa-text-height',
         field_name: 'text_area_',
         canReadOnly: true,
+        canToggleField: true,
+        canHaveMaxLength: true,
+        canHaveMinLength: true,
       },
       {
         key: 'FieldSet',
@@ -437,6 +489,7 @@ class Toolbar extends React.Component {
         icon: 'fas fa-pen-square',
         label: intl.formatMessage({ id: 'signature' }),
         field_name: 'signature_',
+        canToggleField: true,
       },
       {
         key: 'HyperLink',
@@ -569,8 +622,17 @@ class Toolbar extends React.Component {
     if (item.canToggleNegative) {
       elementOptions.canToggleNegative = item.canToggleNegative;
     }
-     if (item.canMapFields) {
+    if (item.canMapFields) {
       elementOptions.canMapFields = item.canMapFields;
+    }
+    if (item.canToggleField) {
+      elementOptions.canToggleField = item.canToggleField;
+    }
+    if (item.canUseCascade) {
+      elementOptions.canUseCascade = item.canUseCascade;
+    }
+    if (item.haveArithmetic) {
+      elementOptions.haveArithmetic = item.haveArithmetic;
     }
     if (item.canReadOnly) {
       elementOptions.readOnly = false;
@@ -596,6 +658,9 @@ class Toolbar extends React.Component {
     if (item.canHaveMaxLength) {
       elementOptions.canHaveMaxLength = item.canHaveMaxLength;
     }
+    if (item.canHaveMinLength) {
+      elementOptions.canHaveMinLength = item.canHaveMinLength;
+    }
     if (item.canTogglePassword) {
       elementOptions.canTogglePassword = item.canTogglePassword;
     }
@@ -615,9 +680,8 @@ class Toolbar extends React.Component {
       elementOptions.canHaveDynamicInputOptions =
         item.canHaveDynamicInputOptions;
     }
-     if (item.canHaveDataColumns) {
-      elementOptions.canHaveDataColumns =
-        item.canHaveDataColumns;
+    if (item.canHaveDataColumns) {
+      elementOptions.canHaveDataColumns = item.canHaveDataColumns;
     }
 
     if (item.canHandleMultiOptions) {
@@ -625,6 +689,11 @@ class Toolbar extends React.Component {
     }
     elementOptions.denominators = item.denominators;
     elementOptions.mappedFields = item.mappedFields;
+    elementOptions.visibilityFields = item.visibilityFields;
+    elementOptions.toggleVisibility = item.toggleVisibility;
+    elementOptions.isCascade = item.isCascade;
+    elementOptions.dependentField = item.dependentField;
+    elementOptions.calculationFields = item.calculationFields;
     elementOptions.dynamicInputOptions = item.dynamicInputOptions;
     elementOptions.dataColumns = item.dataColumns;
 
@@ -656,10 +725,14 @@ class Toolbar extends React.Component {
 
     if (elementKey === 'DatePicker') {
       elementOptions.dateFormat = item.dateFormat;
+      elementOptions.minDate = item.minDate;
+      elementOptions.maxDate = item.maxDate;
       elementOptions.timeFormat = item.timeFormat;
       elementOptions.showTimeSelect = item.showTimeSelect;
       elementOptions.showTimeSelectOnly = item.showTimeSelectOnly;
       elementOptions.showTimeInput = item.showTimeInput;
+      elementOptions.hideFutureDate = item.hideFutureDate;
+      elementOptions.hidePastDate = item.hidePastDate;
     }
 
     if (elementKey === 'Download') {
@@ -726,7 +799,7 @@ class Toolbar extends React.Component {
   render() {
     const { items, grouped, groupKeys } = buildGroupItems(this.state.items);
     return (
-      <div className="float-right col-md-3 react-form-builder-toolbar">
+      <div className="  max-w-[360px] react-form-builder-toolbar">
         <h4>{this.props.intl.formatMessage({ id: 'toolbox' })}</h4>
         <ul>
           {items.map(this.renderItem)}

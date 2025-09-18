@@ -128,6 +128,7 @@ export interface FormBuilderProps {
   onPost?: (data: FormBuilderPostData) => void;
   saveUrl?: string;
   saveAlways?: boolean;
+  apiBaseUrl?: string;
 }
 
 export class ReactFormBuilder extends React.Component<FormBuilderProps> {}
@@ -155,6 +156,7 @@ export interface FormGeneratorProps {
   read_only?: boolean;
   // eslint-disable-next-line no-undef
   variables?: Record<any, any>;
+  apiBaseUrl?: string;
 }
 
 export class ReactFormGenerator extends React.Component<FormGeneratorProps> {}

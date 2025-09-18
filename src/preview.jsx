@@ -20,7 +20,7 @@ export default class Preview extends React.Component {
   constructor(props) {
     super(props);
 
-    const { onLoad, onPost } = props;
+    const { onLoad, onPost, apiBaseUrl } = props;
     store.setExternalHandler(onLoad, onPost);
 
     this.editForm = React.createRef();
@@ -37,6 +37,7 @@ export default class Preview extends React.Component {
     this.setAsChild = this.setAsChild.bind(this);
     this.removeChild = this.removeChild.bind(this);
     this._onDestroy = this._onDestroy.bind(this);
+    this.duplicateElement = this.duplicateElement.bind(this);
   }
 
   componentDidMount() {
@@ -113,6 +114,26 @@ export default class Preview extends React.Component {
     }
     store.dispatch('delete', item);
   }
+
+duplicateElement = (elementData) => {
+const elementId = elementData?.id;
+  const { data } = this.state;
+  const element = this.getDataById(elementId);
+  if (!element) return;
+
+  // Deep clone the element and assign a new id
+  const newElement = { ...JSON.parse(JSON.stringify(element)), id: Date.now() + Math.random() };
+  // Optionally, update other fields if needed (e.g., field_name)
+  newElement.field_name = `${element.field_name}_copy`;
+
+  // Insert the duplicated element after the original
+  const index = data.findIndex(x => x.id === elementId);
+  const newData = [...data];
+  newData.splice(index + 1, 0, newElement);
+
+  this.setState({ data: newData });
+  store.dispatch('updateOrder', newData);
+};
 
   getDataById(id) {
     const { data } = this.state;
@@ -253,7 +274,7 @@ export default class Preview extends React.Component {
     if (SortableFormElement === null) {
       return null;
     }
-    return <SortableFormElement id={item.id} seq={this.seq} index={index} moveCard={this.moveCard} insertCard={this.insertCard} mutable={false} parent={this.props.parent} editModeOn={this.props.editModeOn} isDraggable={true} key={item.id} sortData={item.id} data={item} getDataById={this.getDataById} setAsChild={this.setAsChild} removeChild={this.removeChild} _onDestroy={this._onDestroy} />;
+    return <SortableFormElement id={item.id} seq={this.seq} index={index} moveCard={this.moveCard} insertCard={this.insertCard} mutable={false} parent={this.props.parent} editModeOn={this.props.editModeOn} isDraggable={true} key={item.id} sortData={item.id} data={item} getDataById={this.getDataById} setAsChild={this.setAsChild} removeChild={this.removeChild} _onDestroy={this._onDestroy} duplicateElement={this.duplicateElement} />;
   }
 
   showEditForm() {
@@ -267,7 +288,8 @@ export default class Preview extends React.Component {
       preview: this,
       element: this.props.editElement,
       updateElement: handleUpdateElement,
-      formData: this.state.data
+      formData: this.state.data,
+      apiBaseUrl: this.props.apiBaseUrl
     };
 
     return this.props.renderEditForm(formElementEditProps);
@@ -295,6 +317,6 @@ Preview.defaultProps = {
   files: [],
   editMode: false,
   editElement: null,
-  className: 'col-md-9 react-form-builder-preview float-left',
+  className: 'react-form-builder-preview flex-1',
   renderEditForm: props => <FormElementsEdit {...props} />,
 };

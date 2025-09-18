@@ -12,8 +12,8 @@ const OptionsExample = () => (
           <code>
 {`{
   "data": [
-    { "text": "Option 1", "value": "1" },
-    { "text": "Option 2", "value": "2" }
+    { "text": "Option 1", "value": "1", "key": "" },
+    { "text": "Option 2", "value": "2", "key": "" }
   ]
 }`}
           </code>

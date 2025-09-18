@@ -70,7 +70,7 @@ export default function TableInputColumn({ value = [], onChange, onGetValue }) {
 
   return (
     <div style={{ maxWidth: '250px' }}>
-      <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <div className="overflow-hidden border border-gray-200 rounded-lg">
         <div className="grid text-sm font-bold border-b border-gray-100 bg-gray-50">
           <div className="px-2 py-2">
             <span className="">Add Denominations</span>
@@ -81,11 +81,11 @@ export default function TableInputColumn({ value = [], onChange, onGetValue }) {
             key={item.key || index}
             className="grid text-sm border-b border-gray-100"
           >
-            <div className="flex items-center gap-x-4 px-2 py-1">
+            <div className="flex items-center px-2 py-1 gap-x-4">
               <span className="flex-1">
                 {/* <input
                   type="number"
-                  className="border border-gray-100 rounded w-full px-3 py-1 outline-none flex-1"
+                  className="flex-1 w-full px-3 py-1 border border-gray-100 rounded outline-none"
                   value={item.value || ''}
                   onChange={(e) => handleValue(e.target.value, index)}
                   placeholder="10"
@@ -93,7 +93,7 @@ export default function TableInputColumn({ value = [], onChange, onGetValue }) {
                 /> */}
                 <CurrencyInput
                   id="input-example"
-                  className="border border-gray-100 rounded w-full px-3 py-1 outline-none"
+                  className="w-full px-3 py-1 border border-gray-100 rounded outline-none"
                   decimalsLimit={6}
                   defaultValue={item.value}
                   onValueChange={(e) => handleValue(e, index)}
@@ -102,7 +102,7 @@ export default function TableInputColumn({ value = [], onChange, onGetValue }) {
               </span>
               <button
                 onClick={() => removeRow(index)}
-                className="text-red-500 hover:text-red-700 px-2"
+                className="px-2 text-red-500 hover:text-red-700"
                 type="button"
                 aria-label="Remove row"
               >
@@ -113,7 +113,7 @@ export default function TableInputColumn({ value = [], onChange, onGetValue }) {
         ))}
       </div>
 
-      <div className="mt-1 flex justify-end">
+      <div className="flex justify-end mt-1">
         <button
           type="button"
           onClick={addRow}

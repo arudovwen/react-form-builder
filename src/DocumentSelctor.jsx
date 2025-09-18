@@ -4,11 +4,17 @@ import React, { useState, useEffect } from 'react';
 export default function DocumentSelctor({ handleValue }) {
   const [documents, setDocuments] = useState([]);
   const [selected, setSelected] = useState(null);
+  const token = window.localStorage.getItem('token');
+
+  const config = {
+    headers: { Authorization: `Bearer ${token}` },
+  };
 
   const getDocuments = async () => {
     try {
       const response = await axios.get(
-        'https://api.dev.workflow.kusala.com.ng/api/v1/FileUpload/upload-document',
+        'https://api.dev.gateway.kusala.com.ng/workflows/api/v1/FileUpload/upload-document',
+        config,
       );
       if (response.status === 200) {
         setDocuments({
@@ -34,7 +40,7 @@ export default function DocumentSelctor({ handleValue }) {
   return (
     <div>
       <h4 className="text-13">Choose a document</h4>
-      <div className="d-flex align-items-center position-relative clearfix pr-6">
+      <div className="clearfix pr-6 d-flex align-items-center position-relative">
         <select
           className="form-control"
           onChange={(e) => setSelected(e.target.value)}

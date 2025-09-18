@@ -10,7 +10,7 @@ const ComponentLabel = (props) => {
   return (
     <label className={props.className || 'form-label'}>
       <span dangerouslySetInnerHTML={{ __html: labelText }}/>
-      {hasRequiredLabel && <span style={{ padding: '1px 2px' }} className="label-required badge badge-danger">Required</span>}
+      {hasRequiredLabel && <span style={{ padding: '2px 2px', color: 'white' }} className="px-1 py-[2px] text-[10px] text-white bg-red-600 font-normal label-required badge badge-danger">Required</span>}
     </label>
   );
 };

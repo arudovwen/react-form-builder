@@ -1,7 +1,3 @@
-/**
- * <Form />
- */
-
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { EventEmitter } from 'fbemitter';
@@ -12,36 +8,46 @@ import { TwoColumnRow, ThreeColumnRow, MultiColumnRow } from './multi-column';
 import { FieldSet } from './fieldset';
 import CustomElement from './form-elements/custom-element';
 import Registry from './stores/registry';
+import ToggleFieldsContainer from './ToggleFieldsContainer';
 
-const { Image, Checkboxes, Signature, Download, Camera, FileUpload } =
-  FormElements;
+const { Image, Checkboxes, Signature, Download, Camera, FileUpload } = FormElements;
+
+// ---- validators (hoisted) ----
+const EMAIL_RE =
+  // eslint-disable-next-line no-useless-escape
+  /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}(\.\d{1,3}){3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+const validateEmail = (email) => EMAIL_RE.test(String(email || '').trim());
+const validatePhone = (phone) => /^(\+)?([0-9]{1,4}[\s\-()]?){2,}$/.test(String(phone || '').trim());
 
 class ReactForm extends React.Component {
-  form;
+  form = null;
+  inputs = {};            // map field_name -> ref/component
+  emitter = new EventEmitter();
+  onChangeDebounceId = null;
 
-  inputs = {};
+  constructor(props) {
+    super(props);
+    this.state = {
+      answers: this._convert(props.answer_data) || {}, // canonical answers
+    };
 
-  answerData;
+    this.getDataById = this.getDataById.bind(this);
+    this.handleBlur = this.handleBlur.bind(this);
+    this.handleChange = this.handleChange.bind(this);
+    this.handleSubmit = this.handleSubmit.bind(this);
+  }
 
- constructor(props) {
-  super(props);
+  componentWillUnmount() {
+    if (this.onChangeDebounceId) clearTimeout(this.onChangeDebounceId);
+  }
 
-  this.answerData = this._convert(props.answer_data) || {}; // holds current values
-
-  this.emitter = new EventEmitter();
-  this.getDataById = this.getDataById.bind(this);
-
-  this.handleBlur = this.handleBlur.bind(this);
-  this.handleChange = this.handleChange.bind(this);
-  this.handleSubmit = this.handleSubmit.bind(this);
-}
-
+  // Convert array<{name,value}> to object
   _convert(answers) {
     if (Array.isArray(answers)) {
       const result = {};
       answers.forEach((x) => {
-        if (x.name.indexOf('tags_') > -1) {
-          result[x.name] = x.value.map((y) => y.value);
+        if (x?.name?.indexOf('tags_') > -1) {
+          result[x.name] = (x.value || []).map((y) => y.value);
         } else {
           result[x.name] = x.value;
         }
@@ -51,187 +57,190 @@ class ReactForm extends React.Component {
     return answers || {};
   }
 
-  _getDefaultValue(item) {
-    return this.answerData[item.field_name];
+  // answers accessor with variable overlays (read-only variables)
+  _answersWithVariables() {
+    const { answers } = this.state;
+    const { variables = {}, data = [] } = this.props;
+    if (!variables || !data?.length) return answers;
+
+    const overlay = { ...answers };
+    for (const item of data) {
+      if (!item) continue;
+      if (item.readOnly && item.variableKey && variables[item.variableKey] != null) {
+        overlay[item.field_name] = variables[item.variableKey];
+      }
+    }
+    return overlay;
   }
+
+  _getDefaultValue = (item) => this.state.answers?.[item.field_name];
 
   _optionsDefaultValue(item) {
     const defaultValue = this._getDefaultValue(item);
-    if (defaultValue) {
-      return defaultValue;
-    }
+    if (defaultValue) return defaultValue;
 
-    const defaultChecked = [];
-    item.options.forEach((option) => {
-      if (this.answerData[`option_${option.key}`]) {
-        defaultChecked.push(option.key);
+    const def = [];
+    (item.options || []).forEach((option) => {
+      const key = option?.key;
+      if (key && this.state.answers?.[`option_${key}`]) {
+        def.push(key);
       }
     });
-    return defaultChecked;
+    return def;
   }
 
   _getItemValue(item, ref, trimValue) {
-    let $item = {
-      element: item.element,
-      value: '',
-    };
-    if (item.element === 'Rating') {
-      $item.value = ref.inputField.current.state.rating;
-    } else if (item.element === 'Tags') {
-      $item.value = ref.inputField.current.state.value;
-    } else if (item.element === 'DatePicker') {
-      $item.value = ref.state.value;
-    } else if (item.element === 'Camera') {
-      $item.value = ref.state.img;
-    } else if (item.element === 'TableInput') {
-      $item.value = ref.state.tableData;
-    } else if (item.element === 'RadioButton') {
-      $item.value = ref.state.selectedValue;
-    } else if (
-      item.element === 'DynamicMultiInput' || item.element === 'DataGridInput' ||
-      item.element === 'CascadeSelect' ||
-      item.element === 'CustomDatePicker' ||
-      item.element === 'CustomSelect'
-    ) {
-      $item.value = ref.state.dataList;
-    } else if (item.element === 'FileUpload') {
-      $item.value = ref.state.fileUpload;
-    } else if (item.element === 'MultiFileUpload') {
-      $item.value = ref.state.fileUpload;
-    } else if (ref && ref.inputField && ref.inputField.current) {
-      $item = ReactDOM.findDOMNode(ref.inputField.current);
-      if (trimValue && $item && typeof $item.value === 'string') {
-        $item.value = $item.value.trim();
+    // Return uniform { element, value }
+    const $ = { element: item.element, value: '' };
+
+    if (!item || !ref) return $;
+
+    switch (item.element) {
+      case 'Rating':
+        $.value = ref?.inputField?.current?.state?.rating ?? '';
+        return $;
+      case 'Tags':
+        $.value = ref?.inputField?.current?.state?.value ?? '';
+        return $;
+      case 'DatePicker':
+        $.value = ref?.state?.value ?? '';
+        return $;
+      case 'Camera':
+        $.value = ref?.state?.img ?? '';
+        return $;
+      case 'TableInput':
+        $.value = ref?.state?.tableData ?? '';
+        return $;
+      case 'RadioButton':
+        $.value = ref?.state?.selectedValue ?? '';
+        return $;
+      case 'DynamicMultiInput':
+      case 'DataGridInput':
+      case 'CascadeSelect':
+      case 'CustomDatePicker':
+      case 'ArithmeticInput':
+      case 'CustomSelect':
+        $.value = ref?.state?.dataList ?? '';
+        return $;
+      case 'FileUpload':
+      case 'MultiFileUpload':
+        $.value = ref?.state?.fileUpload ?? [];
+        return $;
+      default: {
+        // Native input path: prefer an explicit ref from child if provided
+        const inputRef = ref?.inputField?.current;
+        if (inputRef) {
+          const dom = inputRef; // current is a DOM node for native inputs
+          let v = dom.value;
+          if (trimValue && typeof v === 'string') v = v.trim();
+          $.value = v;
+          return $;
+        }
+        // Fallback (legacy): try findDOMNode on child wrapper
+        const dom = ReactDOM.findDOMNode(ref?.inputField?.current || ref);
+        if (dom && dom.value != null) {
+          $.value = trimValue && typeof dom.value === 'string' ? dom.value.trim() : dom.value;
+        }
+        return $;
       }
     }
-    return $item;
   }
 
-  _getOptionKeyValue = (option) => (this.props.option_key_value === 'value' ? option.value : option.key);
+  _getOptionKeyValue = (option) =>
+    (this.props.option_key_value === 'value' ? option?.value : option?.key);
 
   _isIncorrect(item) {
-    let incorrect = false;
-    if (item.canHaveAnswer) {
-      const ref = this.inputs[item.field_name];
-      if (item.element === 'Checkboxes' || item.element === 'RadioButtons') {
-        item.options.forEach((option) => {
-          const $option = ReactDOM.findDOMNode(
-            ref.options[`child_ref_${option.key}`],
-          );
-          if (
-            (option.hasOwnProperty('correct') && !$option.checked) ||
-            (!option.hasOwnProperty('correct') && $option.checked)
-          ) {
-            incorrect = true;
-          }
-        });
-      } else {
-        const $item = this._getItemValue(item, ref);
-        if (item.element === 'Rating') {
-          if ($item.value.toString() !== item.correct) {
-            incorrect = true;
-          }
-        } else if (
-          $item.value.toLowerCase() !== item.correct.trim().toLowerCase()
-        ) {
-          incorrect = true;
-        }
+    if (!item?.canHaveAnswer) return false;
+    const ref = this.inputs[item.field_name];
+    if (!ref) return false;
+
+    if (item.element === 'Checkboxes' || item.element === 'RadioButtons') {
+      for (const option of item.options || []) {
+        const child = ref.options?.[`child_ref_${option.key}`];
+        const dom = child && ReactDOM.findDOMNode(child);
+        const checked = !!dom?.checked;
+        const hasCorrect = Object.prototype.hasOwnProperty.call(option || {}, 'correct');
+        if ((hasCorrect && !checked) || (!hasCorrect && checked)) return true;
       }
+      return false;
     }
-    return incorrect;
+
+    const $item = this._getItemValue(item, ref, true);
+    if (item.element === 'Rating') {
+      return String($item.value) !== String(item.correct);
+    }
+    return String($item.value || '').toLowerCase() !== String(item.correct || '').trim().toLowerCase();
   }
 
   _isInvalid(item) {
-    let invalid = false;
+    if (!item?.required) return false;
 
-    if (item.required === true) {
-      const ref = this.inputs[item.field_name];
-      if (item.element === 'Checkboxes' || item.element === 'RadioButtons') {
-        let checked_options = 0;
-        item.options.forEach((option) => {
-          const $option = ReactDOM.findDOMNode(
-            ref.options[`child_ref_${option.key}`],
-          );
-          if ($option.checked) {
-            checked_options += 1;
-          }
-        });
-        if (checked_options < 1) {
-          // errors.push(item.label + ' is required!');
-          invalid = true;
-        }
-      } else {
-        const $item = this._getItemValue(item, ref);
+    const ref = this.inputs[item.field_name];
+    if (!ref) return true;
 
-        if (item.element === 'Rating') {
-          if ($item.value === 0) {
-            invalid = true;
-          }
-        } else if (item.element === 'MultiFileUpload') {
-          if ($item.value.some((dt) => !dt.fileData)) {
-            invalid = true;
-          }
-        } else if (!$item.value || $item.value?.length < 1) {
-          invalid = true;
-        }
+    if (item.element === 'Checkboxes' || item.element === 'RadioButtons') {
+      let checked = 0;
+      for (const option of item.options || []) {
+        const child = ref.options?.[`child_ref_${option.key}`];
+        const dom = child && ReactDOM.findDOMNode(child);
+        if (dom?.checked) checked += 1;
       }
+      return checked < 1;
     }
-    return invalid;
+
+    const $item = this._getItemValue(item, ref, false);
+  
+    if (item.element === 'Rating') return Number($item.value) === 0;
+    if (item.element === 'MultiFileUpload') return ($item.value || []).some((dt) => !dt?.fileData);
+    return !$item.value || ($item.value?.length < 1);
   }
 
   _collect(item, trimValue) {
+    if (!item?.field_name) return null;
+
+    const ref = this.inputs[item.field_name];
     const itemData = {
       id: item.id,
       name: item.field_name,
       custom_name: item.custom_name || item.field_name,
     };
-    if (!itemData.name) return null;
-    const ref = this.inputs[item.field_name];
+
     if (item.element === 'Checkboxes' || item.element === 'RadioButtons') {
-      const checked_options = [];
-      item.options.forEach((option) => {
-        const $option = ReactDOM.findDOMNode(
-          ref.options[`child_ref_${option.key}`],
-        );
-        if ($option.checked) {
-          checked_options.push(this._getOptionKeyValue(option));
-        }
-      });
-      itemData.value = checked_options;
-    } else {
-      if (!ref) return null;
-      itemData.value = this._getItemValue(item, ref, trimValue).value;
+      const checked = [];
+      for (const option of item.options || []) {
+        const child = this.inputs[item.field_name]?.options?.[`child_ref_${option.key}`];
+        const dom = child && ReactDOM.findDOMNode(child);
+        if (dom?.checked) checked.push(this._getOptionKeyValue(option));
+      }
+      itemData.value = checked;
+      return itemData;
     }
+
+    if (!ref) return null;
+    itemData.value = this._getItemValue(item, ref, trimValue).value;
     return itemData;
   }
 
-  _collectFormData(data, trimValue) {
-    const formData = [];
-    data.forEach((item) => {
-      const item_data = this._collect(item, trimValue);
-      if (item_data) {
-        formData.push(item_data);
-      }
-    });
-    return formData;
+  _collectFormData(items, trimValue) {
+    const out = [];
+    for (const item of items || []) {
+      const d = this._collect(item, trimValue);
+      if (d) out.push(d);
+    }
+    return out;
   }
 
   _getSignatureImg(item) {
     const ref = this.inputs[item.field_name];
-    const $canvas_sig = ref.canvas.current;
-    if ($canvas_sig) {
-      const base64 = $canvas_sig
-        .toDataURL()
-        .replace('data:image/png;base64,', '');
-      const isEmpty = $canvas_sig.isEmpty();
-      const $input_sig = ReactDOM.findDOMNode(ref.inputField.current);
-      if (isEmpty) {
-        $input_sig.value = '';
-      } else {
-        $input_sig.value = base64;
-      }
-    }
+    const canvas = ref?.canvas?.current;
+    if (!canvas) return;
+    const base64 = canvas.toDataURL().replace('data:image/png;base64,', '');
+    const isEmpty = canvas.isEmpty();
+    const input = ref?.inputField?.current && ReactDOM.findDOMNode(ref.inputField.current);
+    if (input) input.value = isEmpty ? '' : base64;
   }
+
+  // ---- events ----
 
   handleSubmit(e) {
     e.preventDefault();
@@ -239,255 +248,196 @@ class ReactForm extends React.Component {
     let errors = [];
     if (!this.props.skip_validations) {
       errors = this.validateForm();
-      // Publish errors, if any.
       this.emitter.emit('formValidation', errors);
     }
 
-    // Only submit if there are no errors.
     if (errors.length < 1) {
-      const { onSubmit } = this.props;
-      if (onSubmit) {
-        const data = this._collectFormData(this.props.data, true);
-        onSubmit(data);
+      const data = this._collectFormData(this.props.data, true);
+      if (this.props.onSubmit) {
+        this.props.onSubmit(data);
       } else {
         const $form = ReactDOM.findDOMNode(this.form);
-        $form.submit();
+        $form && $form.submit && $form.submit();
       }
     }
   }
 
-handleBlur() {
-  const data = this._collectFormData(this.props.data, true);
-
-  this.answerData = {};
-  data.forEach(item => {
-    this.answerData[item.name] = item.value;
-  });
-
-  if (this.props.onBlur) {
-    this.props.onBlur(data);
-  }
-}
-
-handleChange() {
-  const data = this._collectFormData(this.props.data, false);
-
-  // Always update latest answerData
-  this.answerData = {};
-  data.forEach(item => {
-    this.answerData[item.name] = item.value;
-  });
-
-  if (this.props.onChange) {
-    this.props.onChange(data);
+  handleBlur() {
+    // snapshot answers on blur (trimmed)
+    const data = this._collectFormData(this.props.data, true);
+    const next = {};
+    data.forEach((item) => (next[item.name] = item.value));
+    this.setState({ answers: next }, () => {
+      this.props.onBlur?.(data);
+    });
   }
 
-  // Force update so fields get new props
-  this.forceUpdate();
-}
+  handleChange() {
+    // snapshot answers on change (untrimmed), debounce parent onChange
+    const data = this._collectFormData(this.props.data, false);
+    const next = {};
+ 
+    data.forEach((item) => (next[item.name] = item.value));
+    this.setState({ answers: next });
+
+    if (this.onChangeDebounceId) clearTimeout(this.onChangeDebounceId);
+    this.onChangeDebounceId = setTimeout(() => {
+      this.props.onChange?.(data);
+    }, 120);
+  }
+
+  // ---- validation ----
 
   validateForm() {
     const errors = [];
-    let data_items = this.props.data;
-    const { intl } = this.props;
+    const { intl, display_short } = this.props;
+    const data_items = display_short
+      ? (this.props.data || []).filter((i) => i?.alternateForm === true)
+      : (this.props.data || []);
 
-    if (this.props.display_short) {
-      data_items = this.props.data.filter((i) => i.alternateForm === true);
-    }
+    for (const item of data_items) {
+      if (!item) continue;
 
-    data_items.forEach((item) => {
-      if (item.element === 'Signature') {
-        this._getSignatureImg(item);
-      }
+
+      if (item.element === 'Signature') this._getSignatureImg(item);
 
       if (this._isInvalid(item)) {
-        errors.push(
-          `${item.label} ${intl.formatMessage({ id: 'message.is-required' })}!`,
-        );
+        errors.push(`${item.label} ${intl.formatMessage({ id: 'message.is-required' })}!`);
       }
 
       if (item.element === 'EmailInput') {
         const ref = this.inputs[item.field_name];
         const emailValue = this._getItemValue(item, ref).value;
-        if (emailValue) {
-          const validateEmail = (email) => email.match(
-              // eslint-disable-next-line no-useless-escape
-              /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
-            );
-          const checkEmail = validateEmail(emailValue);
-          if (!checkEmail) {
-            errors.push(
-              `${item.label} ${intl.formatMessage({
-                id: 'message.invalid-email',
-              })}`,
-            );
-          }
+        if (emailValue && !validateEmail(emailValue)) {
+          errors.push(`${item.label} ${intl.formatMessage({ id: 'message.invalid-email' })}`);
         }
       }
 
       if (item.element === 'PhoneNumber') {
         const ref = this.inputs[item.field_name];
         const phoneValue = this._getItemValue(item, ref).value;
-        if (phoneValue) {
-          // const validatePhone = (phone) => phone.match(
-          //     // eslint-disable-next-line no-useless-escape
-          //     /^[+]?(1\-|1\s|1|\d{3}\-|\d{3}\s|)?((\(\d{3}\))|\d{3})(\-|\s)?(\d{3})(\-|\s)?(\d{4})$/g,
-          //   );
-          const validatePhone = (phone) => /^(\+)?([0-9]{1,4}[\s\-()]?){2,}$/.test(phone);
-
-          const checkPhone = validatePhone(phoneValue);
-          if (!checkPhone) {
-            errors.push(
-              `${item.label} ${intl.formatMessage({
-                id: 'message.invalid-phone-number',
-              })}`,
-            );
-          }
+        if (phoneValue && !validatePhone(phoneValue)) {
+          errors.push(`${item.label} ${intl.formatMessage({ id: 'message.invalid-phone-number' })}`);
         }
       }
 
       if (this.props.validateForCorrectness && this._isIncorrect(item)) {
-        errors.push(
-          `${item.label} ${intl.formatMessage({
-            id: 'message.was-answered-incorrectly',
-          })}!`,
-        );
+        errors.push(`${item.label} ${intl.formatMessage({ id: 'message.was-answered-incorrectly' })}!`);
       }
-    });
+    }
 
     return errors;
   }
 
+  // ---- rendering ----
+
   getDataById(id) {
-    const { data } = this.props;
-    return data.find((x) => x.id === id);
+    return (this.props.data || []).find((x) => x?.id === id);
   }
 
   getInputElement(item) {
-    if (item.custom) {
-      return this.getCustomElement(item);
-    }
+    if (!item) return null;
+    if (item.custom) return this.getCustomElement(item);
     const Input = FormElements[item.element];
+    const ro = this.props.read_only || item?.readOnly;
+
+    // Pass live answers (with variable overlays) so dependent fields update
+    const liveAnswers = this._answersWithVariables();
+
     return (
-
-  <Input
-    handleChange={this.handleChange}
-    ref={(c) => (this.inputs[item.field_name] = c)}
-    mutable={true}
-    key={`form_${item.id}`}
-    data={item}
-    read_only={this.props.read_only}
-    defaultValue={this._getDefaultValue(item)}
-    resultData={this.answerData} // ✅ always pass current values
-  />
-
+      <div key={`form_${item.id}`}>
+        <ToggleFieldsContainer data={item}  toggleVisibility={item?.toggleVisibility} fields={item?.visibilityFields || []} results={liveAnswers}>
+          <Input
+            handleChange={this.handleChange}
+            ref={(c) => (this.inputs[item.field_name] = c)}
+            mutable
+            data={item}
+            read_only={ro}
+            defaultValue={this._getDefaultValue(item)}
+            resultData={liveAnswers}
+            apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}
+          />
+        </ToggleFieldsContainer>
+      </div>
     );
   }
 
   getContainerElement(item, Element) {
-    const controls = item.childItems.map((x) => (x ? this.getInputElement(this.getDataById(x)) : <div>&nbsp;</div>));
-    return (
-      <Element
-        mutable={true}
-        key={`form_${item.id}`}
-        data={item}
-        controls={controls}
-      />
+    const controls = (item.childItems || []).map((x) =>
+      x ? this.getInputElement(this.getDataById(x)) : <div key={`empty_${item.id}`}>&nbsp;</div>
     );
+    return <Element mutable key={`form_${item.id}`} data={item} controls={controls} apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'} />;
   }
 
   getSimpleElement(item) {
     const Element = FormElements[item.element];
-    return <Element mutable={true} key={`form_${item.id}`} data={item} />;
+    return <Element mutable key={`form_${item.id}`} data={item} apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'} />;
   }
 
   getCustomElement(item) {
     const { intl } = this.props;
-
     if (!item.component || typeof item.component !== 'function') {
       item.component = Registry.get(item.key);
       if (!item.component) {
-        console.error(
-          `${item.element} ${intl.formatMessage({
-            id: 'message.was-not-registered',
-          })}`,
-        );
+        console.error(`${item.element} ${intl.formatMessage({ id: 'message.was-not-registered' })}`);
       }
     }
 
-    const inputProps = item.forwardRef && {
-      handleChange: this.handleChange,
-      defaultValue: this._getDefaultValue(item),
-      ref: (c) => (this.inputs[item.field_name] = c),
-    };
+    const inputProps =
+      item.forwardRef
+        ? {
+            handleChange: this.handleChange,
+            defaultValue: this._getDefaultValue(item),
+            ref: (c) => (this.inputs[item.field_name] = c),
+          }
+        : {};
+
+    const liveAnswers = this._answersWithVariables();
+
     return (
-      <CustomElement
-        mutable={true}
-        read_only={this.props.read_only}
-        key={`form_${item.id}`}
-        data={item}
-         resultData={this.answerData}
-        {...inputProps}
-      />
+      <div key={`form_${item.id}`}>
+        <ToggleFieldsContainer data={item} toggleVisibility={item?.toggleVisibility} fields={item?.visibilityFields || []} results={liveAnswers}>
+          <CustomElement
+            mutable
+            read_only={this.props.read_only || item?.readOnly}
+            data={item}
+            resultData={liveAnswers}
+            apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}
+            {...inputProps}
+          />
+        </ToggleFieldsContainer>
+      </div>
     );
   }
 
   handleRenderSubmit = () => {
-    const name = this.props.action_name || this.props.actionName;
-    const actionName = name || 'Submit';
-    const { submitButton = false } = this.props;
-
-    return (
-      submitButton || (
-        <input type="submit" className="btn btn-big" value={actionName} />
-      )
-    );
+    const name = this.props.action_name || this.props.actionName || 'Submit';
+    return this.props.submitButton || <input type="submit" className="btn btn-big" value={name} />;
   };
 
   handleRenderBack = () => {
-    const name = this.props.back_name || this.props.backName;
-    const backName = name || 'Cancel';
-    const { backButton = false } = this.props;
-
-    return (
-      backButton || (
-        <a
-          href={this.props.back_action}
-          className="btn btn-default btn-cancel btn-big"
-        >
-          {backName}
-        </a>
-      )
+    const name = this.props.back_name || this.props.backName || 'Cancel';
+    if (!this.props.back_action) return null;
+    return this.props.backButton || (
+      <a href={this.props.back_action} className="btn btn-default btn-cancel btn-big">
+        {name}
+      </a>
     );
   };
 
   render() {
-    let data_items = this.props.data;
-    console.log({ data_items });
-    if (this.props.display_short) {
-      data_items = this.props.data.filter((i) => i.alternateForm === true);
-    }
+    const displayItems = this.props.display_short
+      ? (this.props.data || []).filter((i) => i?.alternateForm === true)
+      : (this.props.data || []);
 
-    data_items.forEach((item) => {
-      if (
-        item &&
-        item?.readOnly &&
-        item.variableKey &&
-        this.props.variables[item.variableKey]
-      ) {
-        this.answerData[item.field_name] =
-          this.props.variables[item.variableKey];
-      }
-    });
-
-    const items = data_items
-      .filter((x) => !x.parentId)
+    const items = displayItems
+      .filter((x) => x && !x.parentId)
       .map((item) => {
-        if (!item) return null;
         switch (item.element) {
           case 'TextInput':
           case 'DynamicInput':
           case 'AmountInput':
+          case 'ArithmeticInput':
           case 'DocumentSelect':
           case 'CascadeSelect':
           case 'DynamicMultiInput':
@@ -523,66 +473,64 @@ handleChange() {
           case 'Signature':
             return (
               <Signature
+                key={`form_${item.id}`}
                 ref={(c) => (this.inputs[item.field_name] = c)}
                 read_only={this.props.read_only || item?.readOnly}
-                mutable={true}
-                key={`form_${item.id}`}
+                mutable
                 data={item}
                 defaultValue={this._getDefaultValue(item)}
+                apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}
               />
             );
           case 'Checkboxes':
             return (
               <Checkboxes
+                key={`form_${item.id}`}
                 ref={(c) => (this.inputs[item.field_name] = c)}
                 read_only={this.props.read_only}
                 handleChange={this.handleChange}
-                mutable={true}
-                key={`form_${item.id}`}
+                mutable
                 data={item}
                 defaultValue={this._optionsDefaultValue(item)}
+                apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}
               />
             );
           case 'Image':
             return (
               <Image
+                key={`form_${item.id}`}
                 ref={(c) => (this.inputs[item.field_name] = c)}
                 handleChange={this.handleChange}
-                mutable={true}
-                key={`form_${item.id}`}
+                mutable
                 data={item}
                 defaultValue={this._getDefaultValue(item)}
+                apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}
               />
             );
           case 'Download':
-            return (
-              <Download
-                download_path={this.props.download_path}
-                mutable={true}
-                key={`form_${item.id}`}
-                data={item}
-              />
-            );
+            return <Download key={`form_${item.id}`} download_path={this.props.download_path} mutable data={item} apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'} />;
           case 'Camera':
             return (
               <Camera
+                key={`form_${item.id}`}
                 ref={(c) => (this.inputs[item.field_name] = c)}
                 read_only={this.props.read_only || item?.readOnly}
-                mutable={true}
-                key={`form_${item.id}`}
+                mutable
                 data={item}
                 defaultValue={this._getDefaultValue(item)}
+                apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}
               />
             );
           case 'FileUpload':
             return (
               <FileUpload
+                key={`form_${item.id}`}
                 ref={(c) => (this.inputs[item.field_name] = c)}
                 read_only={this.props.read_only || item?.readOnly}
-                mutable={true}
-                key={`form_${item.id}`}
+                mutable
                 data={item}
                 defaultValue={this._getDefaultValue(item)}
+                apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}
               />
             );
           default:
@@ -590,9 +538,6 @@ handleChange() {
         }
       });
 
-    const formTokenStyle = {
-      display: 'none',
-    };
     return (
       <div>
         <FormValidator emitter={this.emitter} />
@@ -607,26 +552,16 @@ handleChange() {
             method={this.props.form_method}
           >
             {this.props.authenticity_token && (
-              <div style={formTokenStyle}>
+              <div style={{ display: 'none' }}>
                 <input name="utf8" type="hidden" value="&#x2713;" />
-                <input
-                  name="authenticity_token"
-                  type="hidden"
-                  value={this.props.authenticity_token}
-                />
-                <input
-                  name="task_id"
-                  type="hidden"
-                  value={this.props.task_id}
-                />
+                <input name="authenticity_token" type="hidden" value={this.props.authenticity_token} />
+                <input name="task_id" type="hidden" value={this.props.task_id} />
               </div>
             )}
-            {items}
-            <div className="btn-toolbar">
+            <div id="form-items" className=''>{items}</div>
+            <div className="mt-6 btn-toolbar">
               {!this.props.hide_actions && this.handleRenderSubmit()}
-              {!this.props.hide_actions &&
-                this.props.back_action &&
-                this.handleRenderBack()}
+              {!this.props.hide_actions && this.props.back_action && this.handleRenderBack()}
             </div>
           </form>
         </div>
@@ -635,5 +570,6 @@ handleChange() {
   }
 }
 
-export default injectIntl(ReactForm);
 ReactForm.defaultProps = { validateForCorrectness: false };
+
+export default injectIntl(ReactForm);

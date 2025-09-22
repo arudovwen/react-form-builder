@@ -20,7 +20,7 @@ export default class Preview extends React.Component {
   constructor(props) {
     super(props);
 
-    const { onLoad, onPost, apiBaseUrl } = props;
+    const { onLoad, onPost } = props;
     store.setExternalHandler(onLoad, onPost);
 
     this.editForm = React.createRef();
@@ -37,7 +37,7 @@ export default class Preview extends React.Component {
     this.setAsChild = this.setAsChild.bind(this);
     this.removeChild = this.removeChild.bind(this);
     this._onDestroy = this._onDestroy.bind(this);
-    this.duplicateElement = this.duplicateElement.bind(this);
+    this.duplicateElement = this.duplicateElement?.bind(this);
   }
 
   componentDidMount() {
@@ -289,7 +289,7 @@ const elementId = elementData?.id;
       element: this.props.editElement,
       updateElement: handleUpdateElement,
       formData: this.state.data,
-      apiBaseUrl: this.props.apiBaseUrl
+      apiBaseUrl: this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng',
     };
 
     return this.props.renderEditForm(formElementEditProps);

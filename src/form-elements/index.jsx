@@ -535,8 +535,8 @@ class DynamicInput extends React.Component {
 class DocumentSelect extends React.Component {
   constructor(props) {
     super(props);
-    console.log({props});
-    
+    console.log({ props });
+
     this.state = {
       errorText: "",
       successText: "",
@@ -601,7 +601,7 @@ class DocumentSelect extends React.Component {
         headers: { Authorization: `Bearer ${token}` },
       };
       const response = await axios.get(
-        `${this.props.apiBaseUrl}/documents/v1/DocumentSignature/position-signature-status?documentId=${id}&position=${position}&requestId=${this.requestId}&fromWorkflow=true`,
+        `${this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}/documents/v1/DocumentSignature/position-signature-status?documentId=${id}&position=${position}&requestId=${this.requestId}&fromWorkflow=true`,
         config
       );
 
@@ -637,7 +637,7 @@ class DocumentSelect extends React.Component {
       };
 
       const response = await axios.get(
-        `${this.props.apiBaseUrl}/documents/v1/DocumentSignature/get-signatures-request?documentId=${id}&requestId=${this.requestId}`,
+        `${this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}/documents/v1/DocumentSignature/get-signatures-request?documentId=${id}&requestId=${this.requestId}`,
         config
       );
 
@@ -732,17 +732,17 @@ class DocumentSelect extends React.Component {
             className="clearfix pr-6 d-flex align-items-center position-relative"
             style={{ columnGap: "12px" }}
           >
-            {/* <input
-              {...inputProps}
-              value={parsedDocumentId?.label || ''}
-              readOnly
-            /> */}
+
             <div {...inputProps}>{parsedDocumentId?.label || ""}</div>
             {!isSigned && userCanSign && (
               <a
                 target="_blank"
                 rel="noopener noreferrer"
-                href={`https://kusala.com.ng/document/render/read/${parsedDocumentId?.value}/${signature?.id}?email=${email}&type=form_signature&requestId=${this.requestId}`}
+                href={`/document/render/read/${parsedDocumentId?.value}/${
+                  signature?.id ?? signature?.docSignatureId
+                }?email=${email}&type=form_signature&requestId=${
+                  this.requestId
+                }`}
               >
                 <button
                   type="button"
@@ -758,10 +758,8 @@ class DocumentSelect extends React.Component {
               <a
                 target="_blank"
                 rel="noopener noreferrer"
-                href={`https://kusala.com.ng/document/preview/read/${
-                  parsedDocumentId?.value
-                }/${
-                  signature?.id ?? "043ff984-cf11-4507-81f8-93c8d9fd48ef"
+                href={`/document/preview/read/${parsedDocumentId?.value}/${
+                  signature?.id ?? signature?.docSignatureId
                 }?email=${email}&type=form_signature&requestId=${
                   this.requestId
                 }`}
@@ -1627,8 +1625,8 @@ class Dropdown extends React.Component {
             <option value="" disabled>
               Select
             </option>
-            {tempOptions.map((option) => (
-              <option key={`preview_${option.id}`} value={option.value}>
+            {tempOptions.map((option, idx) => (
+              <option key={`preview_${option.id}_${idx}`} value={option.value}>
                 {option.text}
               </option>
             ))}
@@ -1672,8 +1670,8 @@ class SmartAdaptorDropdown extends React.Component {
         <div className="form-group">
           <ComponentLabel {...this.props} />
           <select {...props}>
-            {this.props.data.options?.map((option) => {
-              const this_key = `preview_${option.id}`;
+            {this.props.data.options?.map((option, idx) => {
+              const this_key = `preview_${option.id}_${idx}`;
               return (
                 <option value={option.value} key={this_key}>
                   {option.text}
@@ -1844,8 +1842,8 @@ class Checkboxes extends React.Component {
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
-          {this.props.data.options?.map((option) => {
-            const this_key = `preview_${option.key}`;
+          {this.props.data.options?.map((option, idx) => {
+            const this_key = `preview_${option.key}_${idx}`;
             const props = {};
             props.name = `option_${option.key}`;
 
@@ -1913,8 +1911,8 @@ class RadioButtons extends React.Component {
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
-          {this.props.data.options?.map((option) => {
-            const this_key = `preview_${option.key}`;
+          {this.props.data.options?.map((option,idx) => {
+            const this_key = `preview_${option.key}_${idx}`;
             const props = {};
             props.name = self.props.data.field_name;
 
@@ -1980,8 +1978,8 @@ class RadioButton extends React.Component {
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
-          {data.options?.map((option) => {
-            const id = `fid_preview_${option.key}`;
+          {data.options?.map((option, idx) => {
+            const id = `fid_preview_${option.key}_${idx}`;
             return (
               <div
                 className={`custom-control custom-radio${
@@ -2260,8 +2258,8 @@ class FileUpload extends React.Component {
 
   constructor(props) {
     super(props);
-    console.log({props});
-    
+    console.log({ props });
+
     this.state = {
       fileUpload: null,
       fileLoading: false,
@@ -2327,8 +2325,9 @@ class FileUpload extends React.Component {
       };
 
       const response = await axios.post(
-        `${this.props.apiBaseUrl}/workflows/api/v1/FileUpload/upload-document`,
-        data,config
+        `${this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}/workflows/api/v1/FileUpload/upload-document`,
+        data,
+        config
       );
 
       this.setState({ fileStatus: "success" });
@@ -2575,7 +2574,7 @@ class MultiFileUpload extends React.Component {
       };
 
       const response = await fetch(
-        `${this.props.apiBaseUrl}/workflows/api/v1/FileUpload/upload-document`,
+        `${this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}/workflows/api/v1/FileUpload/upload-document`,
         {
           method: "POST",
           config,

@@ -1,6 +1,6 @@
 {
   "name": "@arudovwen/react-form-builder",
-  "version": "2.2.0",
+  "version": "2.2.6",
   "description": "A complete form builder for react.",
   "main": "lib/index.js",
   "types": "types/index.d.ts",

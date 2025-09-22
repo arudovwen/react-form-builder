@@ -81,7 +81,7 @@ export default class FormElementsEdit extends React.Component {
         Page_Size: 15,
         count: 100000,
         documentType: 0,
-        organizationId: userData?.id ?? 'a9d0b5de-c51b-4e6a-a003-4f75e46d9ac7',
+        organizationId: userData?.id,
         documentTabs: 2,
       };
       const config = {

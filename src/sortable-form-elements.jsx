@@ -6,8 +6,44 @@ import { FieldSet } from './fieldset';
 import CustomElement from './form-elements/custom-element';
 
 const {
-  Header, Paragraph, Label, LineBreak, TextInput, DynamicInput, AmountInput, ArithmeticInput, DocumentSelect, DynamicMultiInput, DataGridInput, CustomSelect, CustomDatePicker, TableInput, CascadeSelect, PasswordInput, MultiFileUpload, EmailInput, PhoneNumber, NumberInput, TextArea, Dropdown, SmartAdaptorDropdown, Checkboxes,
-  DatePicker, RadioButtons, RadioButton, Image, Rating, Tags, Signature, HyperLink, Download, Camera, Range, FileUpload,
+  Header,
+  Paragraph,
+  Label,
+  LineBreak,
+  TextInput,
+  DynamicInput,
+  AmountInput,
+  ArithmeticInput,
+  DocumentSelect,
+  DynamicMultiInput,
+  DataGridInput,
+  CustomSelect,
+  CustomDatePicker,
+  TableInput,
+  CascadeSelect,
+  PasswordInput,
+  Base64FileViewer,
+  MultiFileUpload,
+  EmailInput,
+  PhoneNumber,
+  NumberInput,
+  TextArea,
+  Dropdown,
+  SmartAdaptorDropdown,
+  Checkboxes,
+  DatePicker,
+  RadioButtons,
+  RadioButton,
+  Image,
+  Rating,
+  Tags,
+  Signature,
+  HyperLink,
+  Download,
+  Camera,
+  Range,
+  FileUpload,
+  AzureFileUpload,
 } = BaseFormElements;
 
 const FormElements = {};
@@ -29,6 +65,7 @@ FormElements.CustomDatePicker = SortableElement(CustomDatePicker);
 FormElements.TableInput = SortableElement(TableInput);
 FormElements.PasswordInput = SortableElement(PasswordInput);
 FormElements.MultiFileUpload = SortableElement(MultiFileUpload);
+FormElements.AzureFileUpload = SortableElement(AzureFileUpload);
 FormElements.EmailInput = SortableElement(EmailInput);
 FormElements.PhoneNumber = SortableElement(PhoneNumber);
 FormElements.NumberInput = SortableElement(NumberInput);
@@ -38,6 +75,7 @@ FormElements.SmartAdaptorDropdown = SortableElement(SmartAdaptorDropdown);
 FormElements.Signature = SortableElement(Signature);
 FormElements.Checkboxes = SortableElement(Checkboxes);
 FormElements.DatePicker = SortableElement(DatePicker);
+FormElements.Base64FileViewer = SortableElement(Base64FileViewer);
 FormElements.RadioButtons = SortableElement(RadioButtons);
 FormElements.RadioButton = SortableElement(RadioButton);
 FormElements.Image = SortableElement(Image);

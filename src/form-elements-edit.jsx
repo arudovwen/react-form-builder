@@ -28,6 +28,7 @@ import MultiSelectInput from './MultiSelectInput';
 import DataGridOptions from './data-grid-options';
 import MultiSelectValue from './MultiSelectValue';
 import ArithmeticComponent from './form-elements/ArithmeticComponent';
+import AzureFileSettings from './form-elements/azure-file-settings';
 
 const toolbar = {
   options: ['inline', 'list', 'textAlign', 'fontSize', 'link', 'history'],
@@ -48,13 +49,13 @@ const dateFormats = [
   { label: 'Weekday, Month Day, Year', format: 'EEEE, MMMM d, yyyy' },
   { label: 'Short Weekday, Month Day, Year', format: 'EEE, MMM d, yyyy' },
   { label: 'Day-Month-Year', format: 'dd-MM-yyyy' },
+  { label: 'Day-Month-Year', format: 'dd-MMM-yyyy' },
 ];
- const currentDate = new Date();
+const currentDate = new Date();
 export default class FormElementsEdit extends React.Component {
   constructor(props) {
     super(props);
-    console.log(props);
-    
+
     this.state = {
       element: this.props.element,
       data: this.props.data,
@@ -90,7 +91,7 @@ export default class FormElementsEdit extends React.Component {
         },
       };
       // a4368688-3294-412e-a516-7e1bde2c32a6
-      // if (!token) return;
+      if (!token) return;
       const url = `${this.props.apiBaseUrl}/documents/v1/documentmanagement/get-documents-inbox?email=${loginData?.email}`;
       const response = await axios.post(url, query, config);
       if (response.status === 200) {
@@ -699,7 +700,8 @@ export default class FormElementsEdit extends React.Component {
           </div>
         )}
         {(this.state.element.element === 'FileUpload' ||
-          this.state.element.element === 'MultiFileUpload') && (
+          this.state.element.element === 'MultiFileUpload' ||
+          this.state.element.element === 'AzureFileUpload') && (
           <div>
             <div className="form-group">
               <label className="control-label" htmlFor="fileType">
@@ -719,6 +721,18 @@ export default class FormElementsEdit extends React.Component {
                 ))}
               </select>
             </div>
+
+            {this.state.element.element === 'AzureFileUpload' && (
+              <div>
+                <AzureFileSettings
+                  apiUrl={this.props.apiBaseUrl}
+                  detail={this.props.element.azureSettings || {}}
+                  onValueChange={(objData) => {
+                    this.editElementProp(this, 'azureSettings', objData);
+                  }}
+                />
+              </div>
+            )}
           </div>
         )}
         {this.state.element.element === 'Signature' &&
@@ -1233,7 +1247,11 @@ export default class FormElementsEdit extends React.Component {
                     }}
                     name="maxDate"
                     selected={this.props.element.maxDate}
-                    minDate={this.props.element.hidePastDate ? currentDate : this.props.element.minDate}
+                    minDate={
+                      this.props.element.hidePastDate
+                        ? currentDate
+                        : this.props.element.minDate
+                    }
                     className="form-control"
                     isClearable
                     placeholderText="Max Date Value"

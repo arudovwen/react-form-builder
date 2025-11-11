@@ -25,6 +25,8 @@ import DataGrid from "./DataGrid";
 import CustomSelectComponent from "./CustomSearchSelect";
 import CascadeDropdown from "./cascade-dropdown";
 import ArithmeticComponentView from "./ArithmeticComponentView";
+import Base64FileViewer from "./base64-render";
+import AzureFileUploadComponent from "./azure-file-upload";
 
 const FormElements = {};
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -256,11 +258,18 @@ class DynamicInput extends React.Component {
     // API call to validate the input
     try {
       this.setState({ validating: true });
-
+      const token = window.localStorage.getItem("token");
+      if (!token) return;
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
       // Make the API call using the method provided (GET by default)
-      const { data, status } = await axios[method || "get"](`${url}/${value}`, {
-        headers: { Authorization: apiKey },
-      });
+      const { data, status } = await axios[method || "get"](
+        `${url}/${value}`,
+        config
+      );
 
       if (status === 200) {
         if ((data?.data?.status || data?.status) === true) {
@@ -591,17 +600,22 @@ class DocumentSelect extends React.Component {
   async checkDocument(id) {
     try {
       const token = window.localStorage.getItem("token");
+      if (!token) return;
       const tempUser = JSON.parse(
         window.localStorage.getItem("LoginInfo") || "{}"
       );
-      const position = tempUser?.role ?? "ed";
+      const position = tempUser?.position ?? tempUser.role;
       this.setState({ fileLoading: true });
 
       const config = {
         headers: { Authorization: `Bearer ${token}` },
       };
       const response = await axios.get(
-        `${this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}/documents/v1/DocumentSignature/position-signature-status?documentId=${id}&position=${position}&requestId=${this.requestId}&fromWorkflow=true`,
+        `${
+          this.props.apiBaseUrl || "https://api.dev.gateway.kusala.com.ng"
+        }/documents/v1/DocumentSignature/position-signature-status?documentId=${id}&position=${position}&requestId=${
+          this.requestId
+        }&fromWorkflow=true`,
         config
       );
 
@@ -631,13 +645,17 @@ class DocumentSelect extends React.Component {
   async getSignatures(id) {
     try {
       const token = window.localStorage.getItem("token");
-
+      if (!token) return;
       const config = {
         headers: { Authorization: `Bearer ${token}` },
       };
 
       const response = await axios.get(
-        `${this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}/documents/v1/DocumentSignature/get-signatures-request?documentId=${id}&requestId=${this.requestId}`,
+        `${
+          this.props.apiBaseUrl || "https://api.dev.gateway.kusala.com.ng"
+        }/documents/v1/DocumentSignature/get-signatures-request?documentId=${id}&requestId=${
+          this.requestId
+        }`,
         config
       );
 
@@ -696,7 +714,7 @@ class DocumentSelect extends React.Component {
     const tempUser = JSON.parse(
       window.localStorage.getItem("LoginInfo") || "{}"
     );
-    const position = tempUser?.role;
+    const position = tempUser?.position ?? tempUser.role;
     const email = tempUser?.email;
     // new URLSearchParams(window.location.search).get('email');
 
@@ -732,7 +750,6 @@ class DocumentSelect extends React.Component {
             className="clearfix pr-6 d-flex align-items-center position-relative"
             style={{ columnGap: "12px" }}
           >
-
             <div {...inputProps}>{parsedDocumentId?.label || ""}</div>
             {!isSigned && userCanSign && (
               <a
@@ -1012,7 +1029,10 @@ class CustomSelect extends React.Component {
     const { data, defaultValue, style, mutable } = this.props;
 
     const tempOptions = this.getFilteredOptions();
-    const tempDefaultValue = defaultValue || [];
+    let tempDefaultValue = defaultValue || [];
+    if (tempOptions.length === 1) {
+      tempDefaultValue = tempOptions[0]?.value;
+    }
     const baseClasses =
       "SortableItem rfb-item" + (data.pageBreakBefore ? " alwaysbreak" : "");
 
@@ -1207,12 +1227,12 @@ class ArithmeticInput extends React.Component {
 
           <ArithmeticComponentView
             // Prefer controlled API if supported: value={this.state.dataList}
-            defaultValue={defaultValue || ""}
+            defaultValue={defaultValue || 0}
             mappedFields={calculationFields || []}
             resultData={resultData || []}
             isReadOnly={isDisabled}
             onChange={(next) => {
-              const str = String(next ?? "");
+              const str = String(next ?? 0);
               this.setState({ dataList: str }, () => {
                 // notify form so it can re-collect values
                 handleChange?.(str);
@@ -1220,17 +1240,17 @@ class ArithmeticInput extends React.Component {
             }}
           />
 
-          <input
+          {/* <input
             type="text"
             name={field_name}
             ref={mutable ? this.inputField : undefined}
             className="form-control field-control"
             disabled={isDisabled}
             readOnly={isDisabled}
-            value={this.state.dataList}
+            value={this.state.dataList || 20 || 0}
             // This input mirrors ArithmeticComponentView; user typing is ignored on purpose.
             onChange={() => {}}
-          />
+          /> */}
         </div>
       </div>
     );
@@ -1597,14 +1617,16 @@ class Dropdown extends React.Component {
     const props = {
       className: "form-control", // Tailwind will apply via `form-control` utility
       name: data?.field_name || "",
-      defaultValue: mutable ? defaultValue : undefined,
+      defaultValue: defaultValue ?? "",
       ref: mutable ? this.inputField : undefined,
       disabled:
         ((read_only || data?.isReadOnly) && !data?.allowEdit) || undefined,
     };
 
     const tempOptions = this.getFilteredOptions();
-
+    if (tempOptions.length === 1) {
+      props.defaultValue = tempOptions[0]?.value;
+    }
     // Keep your existing base classes, add Tailwind for consistency
     let baseClasses = "SortableItem rfb-item relative "; // z-index ensures dropdown stays above everything
     if (data?.pageBreakBefore) {
@@ -1625,6 +1647,7 @@ class Dropdown extends React.Component {
             <option value="" disabled>
               Select
             </option>
+
             {tempOptions.map((option, idx) => (
               <option key={`preview_${option.id}_${idx}`} value={option.value}>
                 {option.text}
@@ -1911,7 +1934,7 @@ class RadioButtons extends React.Component {
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
-          {this.props.data.options?.map((option,idx) => {
+          {this.props.data.options?.map((option, idx) => {
             const this_key = `preview_${option.key}_${idx}`;
             const props = {};
             props.name = self.props.data.field_name;
@@ -2029,6 +2052,33 @@ class Image extends React.Component {
           />
         )}
         {!this.props.data.src && <div className="no-image">No Image</div>}
+      </div>
+    );
+  }
+}
+
+class Base64File extends React.Component {
+  constructor(props) {
+    super(props);
+    this.inputField = React.createRef();
+    const { defaultValue, data } = props;
+    this.state = { value: defaultValue || "" };
+  }
+
+  render() {
+    const style = this.props.data.center ? { textAlign: "center" } : null;
+
+    let baseClasses = "SortableItem rfb-item";
+    if (this.props.data.pageBreakBefore) {
+      baseClasses += " alwaysbreak";
+    }
+    console.log({ props: this.props });
+
+    return (
+    <div style={{ ...this.props.style, ...style }} className={baseClasses}>
+        {" "}
+        <ComponentHeader {...this.props} />
+        {<Base64FileViewer defaultValue={this.props?.defaultValue} />}
       </div>
     );
   }
@@ -2306,7 +2356,7 @@ class FileUpload extends React.Component {
   uploadFile = async (file) => {
     try {
       const token = window.localStorage.getItem("token");
-
+      if (!token) return;
       const config = {
         headers: { Authorization: `Bearer ${token}` },
       };
@@ -2325,7 +2375,9 @@ class FileUpload extends React.Component {
       };
 
       const response = await axios.post(
-        `${this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}/workflows/api/v1/FileUpload/upload-document`,
+        `${
+          this.props.apiBaseUrl || "https://api.dev.gateway.kusala.com.ng"
+        }/workflows/api/v1/FileUpload/upload-document`,
         data,
         config
       );
@@ -2351,6 +2403,9 @@ class FileUpload extends React.Component {
       const uploadedFile = await this.uploadFile(file);
       if (uploadedFile) {
         this.setState({ fileUpload: uploadedFile });
+      } else {
+        // Clear input so user can re-select same file
+        e.target.value = "";
       }
     }
   };
@@ -2518,6 +2573,7 @@ class MultiFileUpload extends React.Component {
           fileData: null,
           fileName: null,
           isLoading: false,
+          id: Date.now(), // Unique ID per file input
         },
       ],
       error: "",
@@ -2526,10 +2582,12 @@ class MultiFileUpload extends React.Component {
   }
 
   componentDidMount() {
-    if (this.props.defaultValue) {
-      const fileUpload = this.props.defaultValue?.map((file) => ({
+    const { defaultValue } = this.props;
+    if (defaultValue?.length) {
+      const fileUpload = defaultValue.map((file) => ({
         ...file,
         isLoading: false,
+        id: Date.now() + Math.random(), // Unique ID for rendering
       }));
       this.setState({ fileUpload });
     }
@@ -2539,68 +2597,64 @@ class MultiFileUpload extends React.Component {
     new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result.split(",")[1]);
-      reader.onerror = (error) => reject(error);
+      reader.onerror = reject;
       reader.readAsDataURL(file);
     });
 
   uploadFile = async (file, index) => {
     try {
-      const validationError = validateFile(file, this.props.data.fileType);
+      const { data: formData, apiBaseUrl } = this.props;
+      const validationError = validateFile(file, formData?.fileType);
       if (validationError) {
         this.setState({ error: validationError });
         return null;
       }
-      this.setState((prevState) => {
-        const fileUpload = [...prevState.fileUpload];
-        fileUpload[index] = {
-          ...fileUpload[index],
-          isLoading: true,
-        };
-        return { fileUpload, error: "" };
-      });
 
-      const data = {
+      this.setLoading(index, true);
+
+      const uploadData = {
         fileName: file.name,
         base64: await this.getBase64(file),
         ext: `.${file.name.split(".").pop()}`,
       };
-      const token = window.localStorage.getItem("token");
 
+      const token = window.localStorage.getItem("token");
+      if (!token) return;
       const config = {
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       };
 
-      const response = await fetch(
-        `${this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}/workflows/api/v1/FileUpload/upload-document`,
-        {
-          method: "POST",
-          config,
-          body: JSON.stringify(data),
-        }
-      );
+      const url = `${
+        apiBaseUrl || "https://api.dev.gateway.kusala.com.ng"
+      }/workflows/api/v1/FileUpload/upload-document`;
+      const response = await axios.post(url, uploadData, config);
 
-      if (!response.ok) {
-        throw new Error("Upload failed");
-      }
+      if (response.status !== 200) throw new Error("Upload failed");
 
-      const result = await response.json();
-      return result.data;
+      return response.data.data;
     } catch (error) {
-      this.setState({ error: error.message || "Unable to upload file" });
+      this.setState({
+        error: error?.response?.data?.message || "Unable to upload file",
+      });
+      setTimeout(() => {
+        this.setState({
+          error: null,
+        });
+      }, 4000);
       return null;
     } finally {
-      this.setState((prevState) => {
-        const fileUpload = [...prevState.fileUpload];
-        fileUpload[index] = {
-          ...fileUpload[index],
-          isLoading: false,
-        };
-        return { fileUpload };
-      });
+      this.setLoading(index, false);
     }
+  };
+
+  setLoading = (index, isLoading) => {
+    this.setState((prevState) => {
+      const fileUpload = [...prevState.fileUpload];
+      fileUpload[index].isLoading = isLoading;
+      return { fileUpload };
+    });
   };
 
   handleFileUpload = async (e, index) => {
@@ -2612,12 +2666,15 @@ class MultiFileUpload extends React.Component {
       this.setState((prevState) => {
         const fileUpload = [...prevState.fileUpload];
         fileUpload[index] = {
+          ...fileUpload[index],
           fileData: uploadedFile,
           fileName: file.name,
-          isLoading: false,
         };
         return { fileUpload };
       });
+    } else {
+      // Clear input so user can re-select same file
+      e.target.value = "";
     }
   };
 
@@ -2625,7 +2682,12 @@ class MultiFileUpload extends React.Component {
     this.setState((prevState) => ({
       fileUpload: [
         ...prevState.fileUpload,
-        { fileData: null, fileName: null, isLoading: false },
+        {
+          fileData: null,
+          fileName: null,
+          isLoading: false,
+          id: Date.now() + Math.random(),
+        },
       ],
     }));
   };
@@ -2633,17 +2695,22 @@ class MultiFileUpload extends React.Component {
   clearFileUpload = (index) => {
     this.setState((prevState) => {
       const fileUpload = [...prevState.fileUpload];
-      fileUpload[index] = { fileData: null, fileName: null, isLoading: false };
+      fileUpload[index] = {
+        ...fileUpload[index],
+        fileData: null,
+        fileName: null,
+      };
       return { fileUpload };
     });
   };
 
   removeFileInput = (index) => {
-    if (this.state.fileUpload.length <= 1) return;
-
-    this.setState((prevState) => ({
-      fileUpload: prevState.fileUpload.filter((_, i) => i !== index),
-    }));
+    this.setState((prevState) => {
+      if (prevState.fileUpload.length <= 1) return null;
+      return {
+        fileUpload: prevState.fileUpload.filter((_, i) => i !== index),
+      };
+    });
   };
 
   saveFile = (e, fileUrl) => {
@@ -2655,16 +2722,15 @@ class MultiFileUpload extends React.Component {
     }
   };
 
-  renderReadOnlyView() {
+  renderReadOnlyView = () => {
     const { defaultValue } = this.props;
     return (
-      <div className="gap-3 d-grid" style={{ rowGap: "12px", display: "grid" }}>
+      <div className="gap-3 d-grid" style={{ rowGap: "12px" }}>
         {defaultValue?.map((file, index) => (
-          <div key={index} className="">
+          <div key={index}>
             <div className="mb-1 text-capitalize form-control">
               {file.fileData?.fileName}
             </div>
-
             <UniversalFileViewer
               fileName={file?.fileData?.fileName}
               fileUrl={file?.fileData?.url}
@@ -2673,27 +2739,28 @@ class MultiFileUpload extends React.Component {
         ))}
       </div>
     );
-  }
+  };
 
-  renderFileInput(file, index) {
+  renderFileInput = (file, index) => {
     const { read_only, data } = this.props;
+    const isDisabled =
+      file?.isLoading || ((read_only || data?.isReadOnly) && !data?.allowEdit);
+    const inputId = `fileInput-${file.id}`;
+
     return (
-      <div key={index} className="gap-3 mb-3 d-flex align-items-center">
+      <div key={file.id} className="gap-3 mb-3 d-flex align-items-center">
         <div className="flex-grow-1 position-relative image-upload-control">
           <input
             type="file"
             onChange={(e) => this.handleFileUpload(e, index)}
-            disabled={
-              file?.isLoading ||
-              ((read_only || data?.isReadOnly) && !data?.allowEdit)
-            }
-            accept={data.fileType || defaultFileType}
+            disabled={isDisabled}
+            accept={data?.fileType || this.state.fileType}
             className="d-none"
-            id={`fileInput-${index}`}
+            id={inputId}
           />
           <label
-            htmlFor={`fileInput-${index}`}
-            className="mb-0 cursor-pointer d-flex align-items-center flex-grow-1"
+            htmlFor={inputId}
+            className="mb-0 cursor-pointer d-flex align-items-center"
             style={{ flex: 1 }}
           >
             <span className="mr-3 btn btn-default">
@@ -2711,17 +2778,14 @@ class MultiFileUpload extends React.Component {
               />
             )}
           </label>
+
           <div className="gap-2 d-flex" style={{ columnGap: "10px" }}>
             {file?.fileData && !file?.isLoading && (
               <button
                 type="button"
                 onClick={() => this.clearFileUpload(index)}
-                className=" btn-file-upload-clear"
-                style={{
-                  padding: "8px",
-                  fontSize: "14px",
-                  border: "none",
-                }}
+                className="btn-file-upload-clear"
+                style={{ padding: "8px", fontSize: "14px", border: "none" }}
                 aria-label="Clear file"
                 title="Clear file"
               >
@@ -2729,16 +2793,12 @@ class MultiFileUpload extends React.Component {
               </button>
             )}
 
-            {this.state?.fileUpload?.length > 1 && !file?.isLoading && (
+            {this.state.fileUpload.length > 1 && !file?.isLoading && (
               <button
                 type="button"
                 onClick={() => this.removeFileInput(index)}
-                className=" btn-file-upload-clear"
-                style={{
-                  padding: "8px",
-                  fontSize: "14px",
-                  border: "none",
-                }}
+                className="btn-file-upload-clear"
+                style={{ padding: "8px", fontSize: "14px", border: "none" }}
                 aria-label="Remove input"
                 title="Remove input"
               >
@@ -2749,14 +2809,14 @@ class MultiFileUpload extends React.Component {
         </div>
       </div>
     );
-  }
+  };
 
   render() {
     const { fileUpload, error } = this.state;
     const { style, data, read_only, defaultValue } = this.props;
 
     const baseClasses = `SortableItem rfb-item${
-      data.pageBreakBefore ? " alwaysbreak" : ""
+      data?.pageBreakBefore ? " alwaysbreak" : ""
     }`;
 
     return (
@@ -2769,7 +2829,7 @@ class MultiFileUpload extends React.Component {
             this.renderReadOnlyView()
           ) : (
             <div className="mb-3">
-              {fileUpload?.map((file, index) =>
+              {fileUpload.map((file, index) =>
                 this.renderFileInput(file, index)
               )}
 
@@ -2794,7 +2854,72 @@ class MultiFileUpload extends React.Component {
     );
   }
 }
+class AzureFileUpload extends React.Component {
+  static propTypes = {
+    data: PropTypes.shape({
+      field_name: PropTypes.string.isRequired,
+      fileType: PropTypes.string,
+      pageBreakBefore: PropTypes.bool,
+    }).isRequired,
+    defaultValue: PropTypes.object,
+    read_only: PropTypes.bool,
+    style: PropTypes.object,
+  };
 
+  fileReader = null;
+
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      fileUpload: null,
+      fileLoading: false,
+      fileStatus: null,
+      error: null,
+    };
+  }
+
+  componentDidMount() {
+    if (this.props.defaultValue) {
+      this.setState({
+        fileUpload: this.props.defaultValue,
+      });
+    }
+  }
+
+  handleFileChange = async (file) => {
+    if (file) {
+      this.setState({ fileUpload: file });
+    }
+  };
+
+  render() {
+    const { fileUpload } = this.state;
+    const { data, read_only, style } = this.props;
+    const baseClasses = `SortableItem rfb-item${
+      data.pageBreakBefore ? " alwaysbreak" : ""
+    }`;
+
+    return (
+      <div style={style} className={baseClasses}>
+        <ComponentHeader {...this.props} />
+        <div className="form-group">
+          <ComponentLabel {...this.props} />
+
+          <AzureFileUploadComponent
+            disabled={(read_only || data?.isReadOnly) && !data?.allowEdit}
+            name={data.field_name}
+            detail={this.props?.data?.azureSettings}
+            onUploaded={this.handleFileChange}
+            apiUrl={this.props.apiBaseUrl}
+            accept={data.fileType || defaultFileType}
+            defaultValue={fileUpload}
+          />
+        </div>
+      </div>
+    );
+  }
+}
 class Range extends React.Component {
   constructor(props) {
     super(props);
@@ -2907,6 +3032,7 @@ FormElements.DynamicMultiInput = DynamicMultiInput;
 FormElements.CustomSelect = CustomSelect;
 FormElements.DataGridInput = DataGridInput;
 FormElements.MultiFileUpload = MultiFileUpload;
+FormElements.AzureFileUpload = AzureFileUpload;
 FormElements.PasswordInput = PasswordInput;
 FormElements.EmailInput = EmailInput;
 FormElements.PhoneNumber = PhoneNumber;
@@ -2917,6 +3043,7 @@ FormElements.SmartAdaptorDropdown = SmartAdaptorDropdown;
 FormElements.Signature = Signature;
 FormElements.Checkboxes = Checkboxes;
 FormElements.DatePicker = DatePicker;
+FormElements.Base64FileViewer = Base64File;
 FormElements.RadioButtons = RadioButtons;
 FormElements.RadioButton = RadioButton;
 FormElements.Image = Image;

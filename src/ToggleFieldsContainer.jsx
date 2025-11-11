@@ -7,6 +7,8 @@ export default function ToggleFieldsContainer({
   data,
   children,
 }) {
+  console.log({ data });
+
   const dependentValue = useMemo(
     () => results?.[data?.dependentField],
     [results, data],
@@ -49,11 +51,12 @@ export default function ToggleFieldsContainer({
   );
   return (
     <>
-      <div
+      <div id='toggleId'
         className={
           (data?.isCascade && !dependentValue) ||
-          (toggleVisibility && (!toggleResult || !fields.length))
-            ? 'opacity-10 h-0 overflow-hidden'
+          (toggleVisibility && (!toggleResult || !fields.length)) ||
+          data?.hideField
+            ? 'opacity-10 h-0 overflow-hidden '
             : ''
         }
       >

@@ -2,76 +2,73 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
 export default function ArithmeticComponentView({
-  defaultValue = [],
+  defaultValue = 0,
   onChange,
-  isReadOnly,
+  isReadOnly = false,
   mappedFields = [],
-  resultData = [],
+  resultData = {},
 }) {
   const [combinedFields, setCombinedFields] = useState([]);
-  const [result, setResult] = useState(defaultValue);
 
+  // ✅ Build combined fields when in edit mode (not read-only)
   useEffect(() => {
-    // Initialize combinedFields on mount or mappedFields change
-    const initialFields = mappedFields.map((field, i) => {
-      const raw = resultData?.[field.field_name] ?? '';
+    if (isReadOnly || !Array.isArray(mappedFields)) return;
 
-      const val = parseFloat(String(raw).replace(/,/g, '')) || field.value || '';
-      return {
-        ...field,
-        value: Number.isNaN(val) ? '' : val,
-      };
+    const initialFields = mappedFields.map((field) => {
+      const raw = resultData?.[field.field_name] ?? field.value ?? 0;
+      const numericValue = parseFloat(String(raw).replace(/,/g, '')) || 0;
+      return { ...field, value: numericValue };
     });
 
     setCombinedFields(initialFields);
-  }, [mappedFields, resultData]);
+  }, [mappedFields, resultData, isReadOnly]);
 
-  const calculateResult = useMemo(() => {
-    const valid = combinedFields.filter(
-      (f) => f.value !== '' && !Number.isNaN(parseFloat(f.value)),
-    );
-  
-    if (valid.length === 0) return null;
-
-    let total = parseFloat(valid[0].value);
-    for (let i = 1; i < valid.length; i++) {
-      const { operation, value } = valid[i];
-      const numVal = parseFloat(value);
-      switch (operation) {
-        case '+':
-          total += numVal;
-          break;
-        case '-':
-          total -= numVal;
-          break;
-        case '*':
-          total *= numVal;
-          break;
-        case '/':
-          total = numVal === 0 ? NaN : total / numVal;
-          break;
-        default:
-          break;
-      }
+  // ✅ Perform calculation only when not read-only
+  const calculatedResult = useMemo(() => {
+    if (isReadOnly || !combinedFields.length) {
+      // use previous stored value instead
+      return parseFloat(String(defaultValue).replace(/,/g, '')) || 0;
     }
 
-    return total;
-  }, [combinedFields]);
+    return combinedFields.reduce((total, { operation, value }, index) => {
+      const num = parseFloat(value) || 0;
+      if (index === 0) return num;
 
+      switch (operation) {
+        case '+':
+          return total + num;
+        case '-':
+          return total - num;
+        case '*':
+          return total * num;
+        case '/':
+          return num === 0 ? NaN : total / num;
+        default:
+          return total;
+      }
+    }, 0);
+  }, [combinedFields, isReadOnly, defaultValue]);
+
+  // ✅ Notify parent only in edit mode
   useEffect(() => {
-    setResult(calculateResult);
-    if (onChange) onChange(calculateResult?.toString());
-  }, [calculateResult]);
-  // console.log({combinedFields, resultData});
+    if (!isReadOnly && typeof onChange === 'function') {
+      const safeValue =
+        Number.isFinite(calculatedResult) && !Number.isNaN(calculatedResult)
+          ? calculatedResult.toLocaleString()
+          : '0';
+      onChange(safeValue);
+    }
+  }, [calculatedResult, isReadOnly]);
+
+  // ✅ Display value based on mode
+  const displayValue =
+    Number.isFinite(calculatedResult) && !Number.isNaN(calculatedResult)
+      ? calculatedResult.toLocaleString()
+      : '0';
 
   return (
-    <div className="max-w-md">
-      {/* <p className="font-semibold">
-        Value:{' '}
-        {result !== null && !Number.isNaN(result)
-          ? result?.toLocaleString()
-          : 'N/A'}
-      </p> */}
+    <div className="form-control field-control">
+      {displayValue}
     </div>
   );
 }

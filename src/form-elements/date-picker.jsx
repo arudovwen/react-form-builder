@@ -1,5 +1,5 @@
 import React from 'react';
-import { format, parse, parseISO } from 'date-fns';
+import { isValid, format, parse, parseISO } from 'date-fns';
 import ReactDatePicker from 'react-datepicker';
 import ComponentHeader from './component-header';
 import ComponentLabel from './component-label';
@@ -52,33 +52,39 @@ class DatePicker extends React.Component {
     return { updated, formatMask };
   }
 
-  static updateDateTime(props, state, formatMask) {
-    let value;
-    let internalValue;
-    const { defaultToday } = props.data;
-    if (
-      defaultToday &&
-      (props.defaultValue === '' || props.defaultValue === undefined)
-    ) {
-      value = format(new Date(), formatMask);
-      internalValue = new Date();
-    } else {
-      value = props.defaultValue;
+static updateDateTime(props, state, formatMask) {
+  let value;
+  let internalValue;
+  const { defaultToday } = props.data;
 
-      if (value === '' || value === undefined) {
-        internalValue = undefined;
-      } else {
-        internalValue = parse(value, state.formatMask, new Date());
+  if (defaultToday && (!props.defaultValue || props.defaultValue === '')) {
+    value = format(new Date(), formatMask);
+    internalValue = new Date();
+  } else {
+    value = props.defaultValue;
+
+    if (!value) {
+      internalValue = undefined;
+    } else {
+      // Try ISO parse first
+      let parsed = parseISO(value);
+      if (!isValid(parsed)) {
+        // Fallback to format mask parsing
+        parsed = parse(value, formatMask, new Date());
       }
+
+      internalValue = isValid(parsed) ? parsed : new Date(value);
     }
-    return {
-      value,
-      internalValue,
-      placeholder: formatMask.toLowerCase(),
-      defaultToday,
-      formatMask: state.formatMask,
-    };
   }
+
+  return {
+    value,
+    internalValue,
+    placeholder: formatMask.toLowerCase(),
+    defaultToday,
+    formatMask,
+  };
+}
 
   // componentWillReceiveProps(props) {
   //   const formatUpdated = this.updateFormat(props);

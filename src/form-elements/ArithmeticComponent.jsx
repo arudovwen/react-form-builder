@@ -121,6 +121,7 @@ export default function ArithmeticComponent({
                   } text-gray-700 border rounded`}
                   placeholder={`${field.isMapped ? field.label : 'Enter'} value`}
                   readOnly={field.isMapped}
+                   decimalsLimit={6}
                 />
 
                 {isEditing && !field.isMapped && (

@@ -1,27 +1,29 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import { EventEmitter } from 'fbemitter';
-import { injectIntl } from 'react-intl';
-import FormValidator from './form-validator';
-import FormElements from './form-elements';
-import { TwoColumnRow, ThreeColumnRow, MultiColumnRow } from './multi-column';
-import { FieldSet } from './fieldset';
-import CustomElement from './form-elements/custom-element';
-import Registry from './stores/registry';
-import ToggleFieldsContainer from './ToggleFieldsContainer';
+import React from "react";
+import ReactDOM from "react-dom";
+import { EventEmitter } from "fbemitter";
+import { injectIntl } from "react-intl";
+import FormValidator from "./form-validator";
+import FormElements from "./form-elements";
+import { TwoColumnRow, ThreeColumnRow, MultiColumnRow } from "./multi-column";
+import { FieldSet } from "./fieldset";
+import CustomElement from "./form-elements/custom-element";
+import Registry from "./stores/registry";
+import ToggleFieldsContainer from "./ToggleFieldsContainer";
 
-const { Image, Checkboxes, Signature, Download, Camera, FileUpload } = FormElements;
+const { Image, Checkboxes, Signature, Download, Camera, FileUpload } =
+  FormElements;
 
 // ---- validators (hoisted) ----
 const EMAIL_RE =
   // eslint-disable-next-line no-useless-escape
   /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}(\.\d{1,3}){3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-const validateEmail = (email) => EMAIL_RE.test(String(email || '').trim());
-const validatePhone = (phone) => /^(\+)?([0-9]{1,4}[\s\-()]?){2,}$/.test(String(phone || '').trim());
+const validateEmail = (email) => EMAIL_RE.test(String(email || "").trim());
+const validatePhone = (phone) =>
+  /^(\+)?([0-9]{1,4}[\s\-()]?){2,}$/.test(String(phone || "").trim());
 
 class ReactForm extends React.Component {
   form = null;
-  inputs = {};            // map field_name -> ref/component
+  inputs = {}; // map field_name -> ref/component
   emitter = new EventEmitter();
   onChangeDebounceId = null;
 
@@ -46,7 +48,7 @@ class ReactForm extends React.Component {
     if (Array.isArray(answers)) {
       const result = {};
       answers.forEach((x) => {
-        if (x?.name?.indexOf('tags_') > -1) {
+        if (x?.name?.indexOf("tags_") > -1) {
           result[x.name] = (x.value || []).map((y) => y.value);
         } else {
           result[x.name] = x.value;
@@ -66,7 +68,11 @@ class ReactForm extends React.Component {
     const overlay = { ...answers };
     for (const item of data) {
       if (!item) continue;
-      if (item.readOnly && item.variableKey && variables[item.variableKey] != null) {
+      if (
+        item.readOnly &&
+        item.variableKey &&
+        variables[item.variableKey] != null
+      ) {
         overlay[item.field_name] = variables[item.variableKey];
       }
     }
@@ -91,39 +97,41 @@ class ReactForm extends React.Component {
 
   _getItemValue(item, ref, trimValue) {
     // Return uniform { element, value }
-    const $ = { element: item.element, value: '' };
+    const $ = { element: item.element, value: "" };
 
     if (!item || !ref) return $;
 
     switch (item.element) {
-      case 'Rating':
-        $.value = ref?.inputField?.current?.state?.rating ?? '';
+      case "Rating":
+        $.value = ref?.inputField?.current?.state?.rating ?? "";
         return $;
-      case 'Tags':
-        $.value = ref?.inputField?.current?.state?.value ?? '';
+      case "Tags":
+        $.value = ref?.inputField?.current?.state?.value ?? "";
         return $;
-      case 'DatePicker':
-        $.value = ref?.state?.value ?? '';
+      case "DatePicker":
+      case "Base64FileViewer":
+        $.value = ref?.state?.value ?? "";
         return $;
-      case 'Camera':
-        $.value = ref?.state?.img ?? '';
+      case "Camera":
+        $.value = ref?.state?.img ?? "";
         return $;
-      case 'TableInput':
-        $.value = ref?.state?.tableData ?? '';
+      case "TableInput":
+        $.value = ref?.state?.tableData ?? "";
         return $;
-      case 'RadioButton':
-        $.value = ref?.state?.selectedValue ?? '';
+      case "RadioButton":
+        $.value = ref?.state?.selectedValue ?? "";
         return $;
-      case 'DynamicMultiInput':
-      case 'DataGridInput':
-      case 'CascadeSelect':
-      case 'CustomDatePicker':
-      case 'ArithmeticInput':
-      case 'CustomSelect':
-        $.value = ref?.state?.dataList ?? '';
+      case "DynamicMultiInput":
+      case "DataGridInput":
+      case "CascadeSelect":
+      case "CustomDatePicker":
+      case "ArithmeticInput":
+      case "CustomSelect":
+        $.value = ref?.state?.dataList ?? "";
         return $;
-      case 'FileUpload':
-      case 'MultiFileUpload':
+      case "FileUpload":
+      case "MultiFileUpload":
+      case "AzureFileUpload":
         $.value = ref?.state?.fileUpload ?? [];
         return $;
       default: {
@@ -132,14 +140,17 @@ class ReactForm extends React.Component {
         if (inputRef) {
           const dom = inputRef; // current is a DOM node for native inputs
           let v = dom.value;
-          if (trimValue && typeof v === 'string') v = v.trim();
+          if (trimValue && typeof v === "string") v = v.trim();
           $.value = v;
           return $;
         }
         // Fallback (legacy): try findDOMNode on child wrapper
         const dom = ReactDOM.findDOMNode(ref?.inputField?.current || ref);
         if (dom && dom.value != null) {
-          $.value = trimValue && typeof dom.value === 'string' ? dom.value.trim() : dom.value;
+          $.value =
+            trimValue && typeof dom.value === "string"
+              ? dom.value.trim()
+              : dom.value;
         }
         return $;
       }
@@ -147,29 +158,37 @@ class ReactForm extends React.Component {
   }
 
   _getOptionKeyValue = (option) =>
-    (this.props.option_key_value === 'value' ? option?.value : option?.key);
+    this.props.option_key_value === "value" ? option?.value : option?.key;
 
   _isIncorrect(item) {
     if (!item?.canHaveAnswer) return false;
     const ref = this.inputs[item.field_name];
     if (!ref) return false;
 
-    if (item.element === 'Checkboxes' || item.element === 'RadioButtons') {
+    if (item.element === "Checkboxes" || item.element === "RadioButtons") {
       for (const option of item.options || []) {
         const child = ref.options?.[`child_ref_${option.key}`];
         const dom = child && ReactDOM.findDOMNode(child);
         const checked = !!dom?.checked;
-        const hasCorrect = Object.prototype.hasOwnProperty.call(option || {}, 'correct');
+        const hasCorrect = Object.prototype.hasOwnProperty.call(
+          option || {},
+          "correct"
+        );
         if ((hasCorrect && !checked) || (!hasCorrect && checked)) return true;
       }
       return false;
     }
 
     const $item = this._getItemValue(item, ref, true);
-    if (item.element === 'Rating') {
+    if (item.element === "Rating") {
       return String($item.value) !== String(item.correct);
     }
-    return String($item.value || '').toLowerCase() !== String(item.correct || '').trim().toLowerCase();
+    return (
+      String($item.value || "").toLowerCase() !==
+      String(item.correct || "")
+        .trim()
+        .toLowerCase()
+    );
   }
 
   _isInvalid(item) {
@@ -178,7 +197,7 @@ class ReactForm extends React.Component {
     const ref = this.inputs[item.field_name];
     if (!ref) return true;
 
-    if (item.element === 'Checkboxes' || item.element === 'RadioButtons') {
+    if (item.element === "Checkboxes" || item.element === "RadioButtons") {
       let checked = 0;
       for (const option of item.options || []) {
         const child = ref.options?.[`child_ref_${option.key}`];
@@ -189,10 +208,11 @@ class ReactForm extends React.Component {
     }
 
     const $item = this._getItemValue(item, ref, false);
-  
-    if (item.element === 'Rating') return Number($item.value) === 0;
-    if (item.element === 'MultiFileUpload') return ($item.value || []).some((dt) => !dt?.fileData);
-    return !$item.value || ($item.value?.length < 1);
+
+    if (item.element === "Rating") return Number($item.value) === 0;
+    if (item.element === "MultiFileUpload")
+      return ($item.value || []).some((dt) => !dt?.fileData);
+    return !$item.value || $item.value?.length < 1;
   }
 
   _collect(item, trimValue) {
@@ -205,10 +225,11 @@ class ReactForm extends React.Component {
       custom_name: item.custom_name || item.field_name,
     };
 
-    if (item.element === 'Checkboxes' || item.element === 'RadioButtons') {
+    if (item.element === "Checkboxes" || item.element === "RadioButtons") {
       const checked = [];
       for (const option of item.options || []) {
-        const child = this.inputs[item.field_name]?.options?.[`child_ref_${option.key}`];
+        const child =
+          this.inputs[item.field_name]?.options?.[`child_ref_${option.key}`];
         const dom = child && ReactDOM.findDOMNode(child);
         if (dom?.checked) checked.push(this._getOptionKeyValue(option));
       }
@@ -234,10 +255,11 @@ class ReactForm extends React.Component {
     const ref = this.inputs[item.field_name];
     const canvas = ref?.canvas?.current;
     if (!canvas) return;
-    const base64 = canvas.toDataURL().replace('data:image/png;base64,', '');
+    const base64 = canvas.toDataURL().replace("data:image/png;base64,", "");
     const isEmpty = canvas.isEmpty();
-    const input = ref?.inputField?.current && ReactDOM.findDOMNode(ref.inputField.current);
-    if (input) input.value = isEmpty ? '' : base64;
+    const input =
+      ref?.inputField?.current && ReactDOM.findDOMNode(ref.inputField.current);
+    if (input) input.value = isEmpty ? "" : base64;
   }
 
   // ---- events ----
@@ -248,7 +270,7 @@ class ReactForm extends React.Component {
     let errors = [];
     if (!this.props.skip_validations) {
       errors = this.validateForm();
-      this.emitter.emit('formValidation', errors);
+      this.emitter.emit("formValidation", errors);
     }
 
     if (errors.length < 1) {
@@ -276,7 +298,7 @@ class ReactForm extends React.Component {
     // snapshot answers on change (untrimmed), debounce parent onChange
     const data = this._collectFormData(this.props.data, false);
     const next = {};
- 
+
     data.forEach((item) => (next[item.name] = item.value));
     this.setState({ answers: next });
 
@@ -293,36 +315,49 @@ class ReactForm extends React.Component {
     const { intl, display_short } = this.props;
     const data_items = display_short
       ? (this.props.data || []).filter((i) => i?.alternateForm === true)
-      : (this.props.data || []);
+      : this.props.data || [];
 
     for (const item of data_items) {
       if (!item) continue;
 
-
-      if (item.element === 'Signature') this._getSignatureImg(item);
+      if (item.element === "Signature") this._getSignatureImg(item);
 
       if (this._isInvalid(item)) {
-        errors.push(`${item.label} ${intl.formatMessage({ id: 'message.is-required' })}!`);
+        errors.push(
+          `${item.label} ${intl.formatMessage({ id: "message.is-required" })}!`
+        );
       }
 
-      if (item.element === 'EmailInput') {
+      if (item.element === "EmailInput") {
         const ref = this.inputs[item.field_name];
         const emailValue = this._getItemValue(item, ref).value;
         if (emailValue && !validateEmail(emailValue)) {
-          errors.push(`${item.label} ${intl.formatMessage({ id: 'message.invalid-email' })}`);
+          errors.push(
+            `${item.label} ${intl.formatMessage({
+              id: "message.invalid-email",
+            })}`
+          );
         }
       }
 
-      if (item.element === 'PhoneNumber') {
+      if (item.element === "PhoneNumber") {
         const ref = this.inputs[item.field_name];
         const phoneValue = this._getItemValue(item, ref).value;
         if (phoneValue && !validatePhone(phoneValue)) {
-          errors.push(`${item.label} ${intl.formatMessage({ id: 'message.invalid-phone-number' })}`);
+          errors.push(
+            `${item.label} ${intl.formatMessage({
+              id: "message.invalid-phone-number",
+            })}`
+          );
         }
       }
 
       if (this.props.validateForCorrectness && this._isIncorrect(item)) {
-        errors.push(`${item.label} ${intl.formatMessage({ id: 'message.was-answered-incorrectly' })}!`);
+        errors.push(
+          `${item.label} ${intl.formatMessage({
+            id: "message.was-answered-incorrectly",
+          })}!`
+        );
       }
     }
 
@@ -346,7 +381,12 @@ class ReactForm extends React.Component {
 
     return (
       <div key={`form_${item.id}`}>
-        <ToggleFieldsContainer data={item}  toggleVisibility={item?.toggleVisibility} fields={item?.visibilityFields || []} results={liveAnswers}>
+        <ToggleFieldsContainer
+          data={item}
+          toggleVisibility={item?.toggleVisibility}
+          fields={item?.visibilityFields || []}
+          results={liveAnswers}
+        >
           <Input
             handleChange={this.handleChange}
             ref={(c) => (this.inputs[item.field_name] = c)}
@@ -355,7 +395,9 @@ class ReactForm extends React.Component {
             read_only={ro}
             defaultValue={this._getDefaultValue(item)}
             resultData={liveAnswers}
-            apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}
+            apiBaseUrl={
+              this.props.apiBaseUrl || "https://api.dev.gateway.kusala.com.ng"
+            }
           />
         </ToggleFieldsContainer>
       </div>
@@ -364,45 +406,78 @@ class ReactForm extends React.Component {
 
   getContainerElement(item, Element) {
     const controls = (item.childItems || []).map((x) =>
-      x ? this.getInputElement(this.getDataById(x)) : <div key={`empty_${item.id}`}>&nbsp;</div>
+      x ? (
+        this.getInputElement(this.getDataById(x))
+      ) : (
+        <div key={`empty_${item.id}`}>&nbsp;</div>
+      )
     );
-    return <Element mutable key={`form_${item.id}`} data={item} controls={controls} apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'} />;
+    return (
+      <Element
+        mutable
+        key={`form_${item.id}`}
+        data={item}
+        controls={controls}
+        apiBaseUrl={
+          this.props.apiBaseUrl || "https://api.dev.gateway.kusala.com.ng"
+        }
+      />
+    );
   }
 
   getSimpleElement(item) {
     const Element = FormElements[item.element];
-    return <Element mutable key={`form_${item.id}`} data={item} apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'} />;
+    return (
+      <Element
+        mutable
+        key={`form_${item.id}`}
+        data={item}
+        apiBaseUrl={
+          this.props.apiBaseUrl || "https://api.dev.gateway.kusala.com.ng"
+        }
+      />
+    );
   }
 
   getCustomElement(item) {
     const { intl } = this.props;
-    if (!item.component || typeof item.component !== 'function') {
+    if (!item.component || typeof item.component !== "function") {
       item.component = Registry.get(item.key);
       if (!item.component) {
-        console.error(`${item.element} ${intl.formatMessage({ id: 'message.was-not-registered' })}`);
+        console.error(
+          `${item.element} ${intl.formatMessage({
+            id: "message.was-not-registered",
+          })}`
+        );
       }
     }
 
-    const inputProps =
-      item.forwardRef
-        ? {
-            handleChange: this.handleChange,
-            defaultValue: this._getDefaultValue(item),
-            ref: (c) => (this.inputs[item.field_name] = c),
-          }
-        : {};
+    const inputProps = item.forwardRef
+      ? {
+          handleChange: this.handleChange,
+          defaultValue: this._getDefaultValue(item),
+          ref: (c) => (this.inputs[item.field_name] = c),
+        }
+      : {};
 
     const liveAnswers = this._answersWithVariables();
 
     return (
       <div key={`form_${item.id}`}>
-        <ToggleFieldsContainer data={item} toggleVisibility={item?.toggleVisibility} fields={item?.visibilityFields || []} results={liveAnswers}>
+        <ToggleFieldsContainer
+          data={item}
+          toggleVisibility={item?.toggleVisibility}
+          fields={item?.visibilityFields || []}
+          results={liveAnswers}
+        >
           <CustomElement
             mutable
             read_only={this.props.read_only || item?.readOnly}
             data={item}
             resultData={liveAnswers}
-            apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}
+            apiBaseUrl={
+              this.props.apiBaseUrl || "https://api.dev.gateway.kusala.com.ng"
+            }
             {...inputProps}
           />
         </ToggleFieldsContainer>
@@ -411,127 +486,207 @@ class ReactForm extends React.Component {
   }
 
   handleRenderSubmit = () => {
-    const name = this.props.action_name || this.props.actionName || 'Submit';
-    return this.props.submitButton || <input type="submit" className="btn btn-big" value={name} />;
-  };
-
-  handleRenderBack = () => {
-    const name = this.props.back_name || this.props.backName || 'Cancel';
-    if (!this.props.back_action) return null;
-    return this.props.backButton || (
-      <a href={this.props.back_action} className="btn btn-default btn-cancel btn-big">
-        {name}
-      </a>
+    const name = this.props.action_name || this.props.actionName || "Submit";
+    return (
+      this.props.submitButton || (
+        <input type="submit" className="btn btn-big" value={name} />
+      )
     );
   };
 
+  handleRenderBack = () => {
+    const name = this.props.back_name || this.props.backName || "Cancel";
+    if (!this.props.back_action) return null;
+    return (
+      this.props.backButton || (
+        <a
+          href={this.props.back_action}
+          className="btn btn-default btn-cancel btn-big"
+        >
+          {name}
+        </a>
+      )
+    );
+  };
   render() {
     const displayItems = this.props.display_short
       ? (this.props.data || []).filter((i) => i?.alternateForm === true)
-      : (this.props.data || []);
-
+      : this.props.data || [];
+    const liveAnswers = this._answersWithVariables();
+    console.log({displayItems});
+    
     const items = displayItems
       .filter((x) => x && !x.parentId)
       .map((item) => {
         switch (item.element) {
-          case 'TextInput':
-          case 'DynamicInput':
-          case 'AmountInput':
-          case 'ArithmeticInput':
-          case 'DocumentSelect':
-          case 'CascadeSelect':
-          case 'DynamicMultiInput':
-          case 'DataGridInput':
-          case 'CustomSelect':
-          case 'CustomDatepicker':
-          case 'TableInput':
-          case 'EmailInput':
-          case 'PhoneNumber':
-          case 'NumberInput':
-          case 'PasswordInput':
-          case 'MultiFileUpload':
-          case 'TextArea':
-          case 'Dropdown':
-          case 'SmartAdaptorDropdown':
-          case 'DatePicker':
-          case 'RadioButtons':
-          case 'RadioButton':
-          case 'Rating':
-          case 'Tags':
-          case 'Range':
+          case "TextInput":
+          case "DynamicInput":
+          case "AmountInput":
+          case "ArithmeticInput":
+          case "DocumentSelect":
+          case "CascadeSelect":
+          case "DynamicMultiInput":
+          case "DataGridInput":
+          case "CustomSelect":
+          case "CustomDatepicker":
+          case "TableInput":
+          case "EmailInput":
+          case "PhoneNumber":
+          case "NumberInput":
+          case "PasswordInput":
+          case "MultiFileUpload":
+          case "AzureFileUpload":
+          case "Base64FileViewer":
+          case "TextArea":
+          case "Dropdown":
+          case "SmartAdaptorDropdown":
+          case "DatePicker":
+          case "RadioButtons":
+          case "RadioButton":
+          case "Rating":
+          case "Tags":
+          case "Range":
             return this.getInputElement(item);
-          case 'CustomElement':
+          case "CustomElement":
             return this.getCustomElement(item);
-          case 'MultiColumnRow':
+          case "MultiColumnRow":
             return this.getContainerElement(item, MultiColumnRow);
-          case 'ThreeColumnRow':
+          case "ThreeColumnRow":
             return this.getContainerElement(item, ThreeColumnRow);
-          case 'TwoColumnRow':
+          case "TwoColumnRow":
             return this.getContainerElement(item, TwoColumnRow);
-          case 'FieldSet':
+          case "FieldSet":
             return this.getContainerElement(item, FieldSet);
-          case 'Signature':
+          case "Signature":
             return (
-              <Signature
-                key={`form_${item.id}`}
-                ref={(c) => (this.inputs[item.field_name] = c)}
-                read_only={this.props.read_only || item?.readOnly}
-                mutable
+              <ToggleFieldsContainer
                 data={item}
-                defaultValue={this._getDefaultValue(item)}
-                apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}
-              />
+                toggleVisibility={item?.toggleVisibility}
+                fields={item?.visibilityFields || []}
+                results={liveAnswers}
+              >
+                <Signature
+                  key={`form_${item.id}`}
+                  ref={(c) => (this.inputs[item.field_name] = c)}
+                  read_only={this.props.read_only || item?.readOnly}
+                  mutable
+                  data={item}
+                  defaultValue={this._getDefaultValue(item)}
+                  apiBaseUrl={
+                    this.props.apiBaseUrl ||
+                    "https://api.dev.gateway.kusala.com.ng"
+                  }
+                />
+              </ToggleFieldsContainer>
             );
-          case 'Checkboxes':
+          case "Checkboxes":
             return (
-              <Checkboxes
-                key={`form_${item.id}`}
-                ref={(c) => (this.inputs[item.field_name] = c)}
-                read_only={this.props.read_only}
-                handleChange={this.handleChange}
-                mutable
+              <ToggleFieldsContainer
                 data={item}
-                defaultValue={this._optionsDefaultValue(item)}
-                apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}
-              />
+                toggleVisibility={item?.toggleVisibility}
+                fields={item?.visibilityFields || []}
+                results={liveAnswers}
+              >
+                <Checkboxes
+                  key={`form_${item.id}`}
+                  ref={(c) => (this.inputs[item.field_name] = c)}
+                  read_only={this.props.read_only}
+                  handleChange={this.handleChange}
+                  mutable
+                  data={item}
+                  defaultValue={this._optionsDefaultValue(item)}
+                  apiBaseUrl={
+                    this.props.apiBaseUrl ||
+                    "https://api.dev.gateway.kusala.com.ng"
+                  }
+                />
+              </ToggleFieldsContainer>
             );
-          case 'Image':
+          case "Image":
             return (
-              <Image
-                key={`form_${item.id}`}
-                ref={(c) => (this.inputs[item.field_name] = c)}
-                handleChange={this.handleChange}
-                mutable
+              <ToggleFieldsContainer
                 data={item}
-                defaultValue={this._getDefaultValue(item)}
-                apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}
-              />
+                toggleVisibility={item?.toggleVisibility}
+                fields={item?.visibilityFields || []}
+                results={liveAnswers}
+              >
+                <Image
+                  key={`form_${item.id}`}
+                  ref={(c) => (this.inputs[item.field_name] = c)}
+                  handleChange={this.handleChange}
+                  mutable
+                  data={item}
+                  defaultValue={this._getDefaultValue(item)}
+                  apiBaseUrl={
+                    this.props.apiBaseUrl ||
+                    "https://api.dev.gateway.kusala.com.ng"
+                  }
+                />
+              </ToggleFieldsContainer>
             );
-          case 'Download':
-            return <Download key={`form_${item.id}`} download_path={this.props.download_path} mutable data={item} apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'} />;
-          case 'Camera':
+          case "Download":
             return (
-              <Camera
-                key={`form_${item.id}`}
-                ref={(c) => (this.inputs[item.field_name] = c)}
-                read_only={this.props.read_only || item?.readOnly}
-                mutable
+              <ToggleFieldsContainer
                 data={item}
-                defaultValue={this._getDefaultValue(item)}
-                apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}
-              />
+                toggleVisibility={item?.toggleVisibility}
+                fields={item?.visibilityFields || []}
+                results={liveAnswers}
+              >
+                <Download
+                  key={`form_${item.id}`}
+                  download_path={this.props.download_path}
+                  mutable
+                  data={item}
+                  apiBaseUrl={
+                    this.props.apiBaseUrl ||
+                    "https://api.dev.gateway.kusala.com.ng"
+                  }
+                />
+              </ToggleFieldsContainer>
             );
-          case 'FileUpload':
+          case "Camera":
             return (
-              <FileUpload
-                key={`form_${item.id}`}
-                ref={(c) => (this.inputs[item.field_name] = c)}
-                read_only={this.props.read_only || item?.readOnly}
-                mutable
+              <ToggleFieldsContainer
                 data={item}
-                defaultValue={this._getDefaultValue(item)}
-                apiBaseUrl={this.props.apiBaseUrl || 'https://api.dev.gateway.kusala.com.ng'}
-              />
+                toggleVisibility={item?.toggleVisibility}
+                fields={item?.visibilityFields || []}
+                results={liveAnswers}
+              >
+                <Camera
+                  key={`form_${item.id}`}
+                  ref={(c) => (this.inputs[item.field_name] = c)}
+                  read_only={this.props.read_only || item?.readOnly}
+                  mutable
+                  data={item}
+                  defaultValue={this._getDefaultValue(item)}
+                  apiBaseUrl={
+                    this.props.apiBaseUrl ||
+                    "https://api.dev.gateway.kusala.com.ng"
+                  }
+                />
+              </ToggleFieldsContainer>
+            );
+          case "FileUpload":
+            return (
+              <ToggleFieldsContainer
+                data={item}
+                toggleVisibility={item?.toggleVisibility}
+                fields={item?.visibilityFields || []}
+                results={liveAnswers}
+              >
+                <FileUpload
+                  key={`form_${item.id}`}
+                  ref={(c) => (this.inputs[item.field_name] = c)}
+                  read_only={this.props.read_only || item?.readOnly}
+                  mutable
+                  data={item}
+                  defaultValue={this._getDefaultValue(item)}
+                  apiBaseUrl={
+                    this.props.apiBaseUrl ||
+                    "https://api.dev.gateway.kusala.com.ng"
+                  }
+                />
+              </ToggleFieldsContainer>
             );
           default:
             return this.getSimpleElement(item);
@@ -552,16 +707,28 @@ class ReactForm extends React.Component {
             method={this.props.form_method}
           >
             {this.props.authenticity_token && (
-              <div style={{ display: 'none' }}>
+              <div style={{ display: "none" }}>
                 <input name="utf8" type="hidden" value="&#x2713;" />
-                <input name="authenticity_token" type="hidden" value={this.props.authenticity_token} />
-                <input name="task_id" type="hidden" value={this.props.task_id} />
+                <input
+                  name="authenticity_token"
+                  type="hidden"
+                  value={this.props.authenticity_token}
+                />
+                <input
+                  name="task_id"
+                  type="hidden"
+                  value={this.props.task_id}
+                />
               </div>
             )}
-            <div id="form-items" className=''>{items}</div>
+            <div id="form-items" className="">
+              {items}
+            </div>
             <div className="mt-6 btn-toolbar">
               {!this.props.hide_actions && this.handleRenderSubmit()}
-              {!this.props.hide_actions && this.props.back_action && this.handleRenderBack()}
+              {!this.props.hide_actions &&
+                this.props.back_action &&
+                this.handleRenderBack()}
             </div>
           </form>
         </div>

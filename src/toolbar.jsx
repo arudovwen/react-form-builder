@@ -425,6 +425,15 @@ class Toolbar extends React.Component {
         canToggleField: true,
       },
       {
+        key: 'Base64FileViewer',
+        name: 'Base64 FileViewer',
+        icon: 'fas fa-file',
+        label: 'Base64 FileViewer',
+        field_name: 'base64_file_viewer_',
+        canReadOnly: true,
+        canToggleField: true,
+      },
+      {
         key: 'MultiFileUpload',
         name: 'Multi File Upload',
         icon: 'fas fa-file',
@@ -432,6 +441,16 @@ class Toolbar extends React.Component {
         field_name: 'multi_file_upload_',
         canReadOnly: true,
         canToggleField: true,
+      },
+      {
+        key: 'AzureFileUpload',
+        name: 'Azure File Upload',
+        icon: 'fas fa-file',
+        label: 'Azure File Upload',
+        field_name: 'azure_file_upload_',
+        canReadOnly: true,
+        canToggleField: true,
+        azureSettings: {},
       },
       {
         key: 'PhoneNumber',
@@ -597,6 +616,8 @@ class Toolbar extends React.Component {
   create(item) {
     const { intl } = this.props;
     const elementKey = item.element || item.key;
+    console.log({ elementKey, item });
+
     const elementOptions = this.addCustomOptions(item, {
       id: ID.uuid(),
       element: elementKey,
@@ -687,6 +708,7 @@ class Toolbar extends React.Component {
     if (item.canHandleMultiOptions) {
       elementOptions.canHandleMultiOptions = item.canHandleMultiOptions;
     }
+    elementOptions.azureSettings = item.azureSettings;
     elementOptions.denominators = item.denominators;
     elementOptions.mappedFields = item.mappedFields;
     elementOptions.visibilityFields = item.visibilityFields;
@@ -722,6 +744,9 @@ class Toolbar extends React.Component {
     if (elementKey === 'Image') {
       elementOptions.src = item.src;
     }
+    // if (elementKey === 'AzureFileUpload') {
+    //   elementOptions.azureSettings = item.azureSettings;
+    // }
 
     if (elementKey === 'DatePicker') {
       elementOptions.dateFormat = item.dateFormat;

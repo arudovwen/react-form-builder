@@ -124,7 +124,7 @@ const api = axios.create({
         <label className="text-sm">Storage Setting</label>
         <select
           className="w-full p-2 border rounded"
-          defaultValue={storageSettingId}
+          value={storageSettingId}
           onChange={(e) => {
             setStorageSettingId(e.target.value);
             setContainerName('');

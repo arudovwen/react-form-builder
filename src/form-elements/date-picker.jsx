@@ -46,7 +46,7 @@ class DatePicker extends React.Component {
       showTimeSelect && showTimeSelectOnly ? '' : props.data.dateFormat;
     const timeFormat =
       showTimeSelect || showTimeInput ? props.data.timeFormat : '';
-    const formatMask = `${dateFormat} ${timeFormat}`.trim();
+    const formatMask = `${dateFormat} ${timeFormat}`?.trim();
     const updated = formatMask !== oldFormatMask;
 
     return { updated, formatMask };

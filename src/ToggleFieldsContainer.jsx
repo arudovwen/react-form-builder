@@ -7,8 +7,6 @@ export default function ToggleFieldsContainer({
   data,
   children,
 }) {
-  console.log({ data });
-
   const dependentValue = useMemo(
     () => results?.[data?.dependentField],
     [results, data],

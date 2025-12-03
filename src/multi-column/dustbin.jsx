@@ -133,7 +133,6 @@ export default DropTarget(
 
       if (!isContainer(item)) {
         (component).onDrop(item);
-        console.log("calling on Drop from 137",item)
         if (item.data && typeof props.setAsChild === 'function') {
           const isNew = !item.data.id;
           const data = isNew ? item.onCreate(item.data) : item.data;

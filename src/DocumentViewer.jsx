@@ -39,8 +39,11 @@ const UniversalFileViewer = ({ fileUrl, fileName }) => {
   const [fileType, setFileType] = useState('unknown');
 
   useEffect(() => {
-    if (!fileUrl) return;
-    const extension = fileUrl.split('.').pop()?.toLowerCase() || '';
+    if (typeof fileUrl !== 'string' || !fileUrl) return;
+
+    const cleanUrl = fileUrl.split('?')[0];
+    const extension = cleanUrl.split('.').pop().toLowerCase();
+
     const type = EXTENSION_MAP[extension] || 'other';
     setFileType(type);
   }, [fileUrl]);

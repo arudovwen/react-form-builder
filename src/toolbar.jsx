@@ -616,7 +616,6 @@ class Toolbar extends React.Component {
   create(item) {
     const { intl } = this.props;
     const elementKey = item.element || item.key;
-    console.log({ elementKey, item });
 
     const elementOptions = this.addCustomOptions(item, {
       id: ID.uuid(),

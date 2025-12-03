@@ -721,7 +721,28 @@ export default class FormElementsEdit extends React.Component {
                 ))}
               </select>
             </div>
-
+            {this.state.element.element === 'FileUpload' && (
+            <div className="form-group">
+               <label className="control-label" htmlFor="fileType">
+              File Result
+              </label>
+                <select
+                id="fileResult"
+                className="form-control"
+                onBlur={this.updateElement.bind(this)}
+                onChange={this.editElementProp.bind(
+                  this,
+                  'fileResult',
+                  'value',
+                )}
+                value={this.props.element.fileResult}
+              >
+                <option value={null} disabled>Select</option>
+                <option value="url">Url String</option>
+                <option value="base64">Base64 String</option>
+              </select>
+            </div>
+            )}
             {this.state.element.element === 'AzureFileUpload' && (
               <div>
                 <AzureFileSettings

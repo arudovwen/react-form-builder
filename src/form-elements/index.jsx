@@ -265,7 +265,7 @@ class DynamicInput extends React.Component {
           Authorization: `Bearer ${token}`,
         },
       };
-      // Make the API call using the method provided (GET by default)
+      // Make the API call using the methold provided (GET by default)
       const { data, status } = await axios[method || "get"](
         `${url}/${value}`,
         config
@@ -333,7 +333,6 @@ class DynamicInput extends React.Component {
         }
       }
     } catch (error) {
-      console.log(error);
       // Handle errors during API validation
       this.setState({
         errorText:
@@ -544,8 +543,7 @@ class DynamicInput extends React.Component {
 class DocumentSelect extends React.Component {
   constructor(props) {
     super(props);
-    console.log({ props });
-
+ 
     this.state = {
       errorText: "",
       successText: "",
@@ -849,10 +847,6 @@ class TextInput extends React.Component {
     ) {
       props.disabled = "disabled";
     }
-    //  async function validateInput(){
-
-    //  }
-    console.log({ props: this.props.data });
 
     return (
       <div style={{ ...this.props.style }} className={baseClasses}>
@@ -1791,7 +1785,7 @@ class Tags extends React.Component {
   getDefaultValue(defaultValue, options) {
     if (defaultValue) {
       if (typeof defaultValue === "string") {
-        const vals = defaultValue.split(",")?.map((x) => x.trim());
+        const vals = defaultValue.split(",")?.map((x) => x?.trim());
         return options.filter((x) => vals.indexOf(x.value) > -1);
       }
       return options.filter((x) => defaultValue.indexOf(x.value) > -1);
@@ -2072,10 +2066,9 @@ class Base64File extends React.Component {
     if (this.props.data.pageBreakBefore) {
       baseClasses += " alwaysbreak";
     }
-    console.log({ props: this.props });
-
+   
     return (
-    <div style={{ ...this.props.style, ...style }} className={baseClasses}>
+      <div style={{ ...this.props.style, ...style }} className={baseClasses}>
         {" "}
         <ComponentHeader {...this.props} />
         {<Base64FileViewer defaultValue={this.props?.defaultValue} />}
@@ -2296,10 +2289,7 @@ class FileUpload extends React.Component {
       fileType: PropTypes.string,
       pageBreakBefore: PropTypes.bool,
     }).isRequired,
-    defaultValue: PropTypes.shape({
-      fileName: PropTypes.string,
-      url: PropTypes.string,
-    }),
+    defaultValue: PropTypes.string,
     read_only: PropTypes.bool,
     style: PropTypes.object,
   };
@@ -2308,7 +2298,6 @@ class FileUpload extends React.Component {
 
   constructor(props) {
     super(props);
-    console.log({ props });
 
     this.state = {
       fileUpload: null,
@@ -2355,7 +2344,7 @@ class FileUpload extends React.Component {
 
   uploadFile = async (file) => {
     try {
-      const token = window.localStorage.getItem("token");
+     const token = window?.localStorage.getItem('token') || '';
       if (!token) return;
       const config = {
         headers: { Authorization: `Bearer ${token}` },
@@ -2368,9 +2357,10 @@ class FileUpload extends React.Component {
       }
 
       this.setState({ fileLoading: true, error: null });
+      const base64File = await this.getBase64(file);
       const data = {
         fileName: file.name,
-        base64: await this.getBase64(file),
+        base64: base64File,
         ext: `.${getExtensionFromMimeType(file.type)}`,
       };
 
@@ -2383,7 +2373,7 @@ class FileUpload extends React.Component {
       );
 
       this.setState({ fileStatus: "success" });
-      return response.data.data;
+      return { url: response.data.data.url, base64File };
     } catch (error) {
       const errorMessage =
         error.response?.data?.message || "Unable to upload file";
@@ -2399,10 +2389,16 @@ class FileUpload extends React.Component {
 
   handleFileChange = async (e) => {
     const file = e.target.files?.[0];
+   
     if (file) {
       const uploadedFile = await this.uploadFile(file);
       if (uploadedFile) {
-        this.setState({ fileUpload: uploadedFile });
+        this.setState({
+          fileUpload:
+            this.props.data?.fileResult === "base64"
+              ? uploadedFile.base64File
+              : uploadedFile.url,
+        });
       } else {
         // Clear input so user can re-select same file
         e.target.value = "";
@@ -2445,10 +2441,10 @@ class FileUpload extends React.Component {
           {read_only && defaultValue ? (
             <div>
               <div
-                className="fileName"
+                className="truncate fileName line-clamp-1"
                 style={{ textTransform: "capitalize", marginBottom: "8px" }}
               >
-                {defaultValue.fileName}
+                {defaultValue}
               </div>
               <div>
                 {/* <button
@@ -2459,8 +2455,8 @@ class FileUpload extends React.Component {
                   <span>Preview File</span>
                 </button> */}
                 <UniversalFileViewer
-                  fileName={defaultValue.fileName}
-                  fileUrl={defaultValue.url}
+                  fileName={'Uploaded file'}
+                  fileUrl={defaultValue}
                 />
               </div>
             </div>
@@ -2468,6 +2464,7 @@ class FileUpload extends React.Component {
             <div className="image-upload-container">
               {!fileUpload && (
                 <div style={{ ...fileInputStyle, alignItems: "center" }}>
+               
                   <input
                     name={data.field_name}
                     type="file"
@@ -2513,9 +2510,20 @@ class FileUpload extends React.Component {
                 <div>
                   <div className="file-upload-preview">
                     <div
+                    className="truncate line-clamp-1"
                       style={{ display: "inline-block", marginRight: "5px" }}
                     >
-                      {`File Name: ${fileUpload.fileName}`}
+                   
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          color: "green",
+                         
+                        }}
+                        role="status"
+                      >
+                        File uploaded successfully
+                      </span>
                     </div>
                     <button
                       type="button"
@@ -2532,7 +2540,7 @@ class FileUpload extends React.Component {
                     </button>
                   </div>
 
-                  {this.state.fileStatus === "success" && (
+                  {/* {this.state.fileStatus === "success" && (
                     <div
                       style={{
                         display: "flex",
@@ -2553,7 +2561,7 @@ class FileUpload extends React.Component {
                         File uploaded successfully
                       </span>
                     </div>
-                  )}
+                  )} */}
                 </div>
               )}
             </div>

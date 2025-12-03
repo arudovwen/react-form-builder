@@ -517,7 +517,7 @@ class ReactForm extends React.Component {
     
     const items = displayItems
       .filter((x) => x && !x.parentId)
-      .map((item) => {
+      .map((item, indd) => {
         switch (item.element) {
           case "TextInput":
           case "DynamicInput":
@@ -559,11 +559,13 @@ class ReactForm extends React.Component {
             return this.getContainerElement(item, FieldSet);
           case "Signature":
             return (
-              <ToggleFieldsContainer
+              <div key={indd}>
+                <ToggleFieldsContainer
                 data={item}
                 toggleVisibility={item?.toggleVisibility}
                 fields={item?.visibilityFields || []}
                 results={liveAnswers}
+                
               >
                 <Signature
                   key={`form_${item.id}`}
@@ -578,9 +580,11 @@ class ReactForm extends React.Component {
                   }
                 />
               </ToggleFieldsContainer>
+              </div>
             );
           case "Checkboxes":
             return (
+               <div key={indd}>
               <ToggleFieldsContainer
                 data={item}
                 toggleVisibility={item?.toggleVisibility}
@@ -600,10 +604,11 @@ class ReactForm extends React.Component {
                     "https://api.dev.gateway.kusala.com.ng"
                   }
                 />
-              </ToggleFieldsContainer>
+              </ToggleFieldsContainer></div>
             );
           case "Image":
             return (
+               <div key={indd}>
               <ToggleFieldsContainer
                 data={item}
                 toggleVisibility={item?.toggleVisibility}
@@ -622,10 +627,11 @@ class ReactForm extends React.Component {
                     "https://api.dev.gateway.kusala.com.ng"
                   }
                 />
-              </ToggleFieldsContainer>
+              </ToggleFieldsContainer></div>
             );
           case "Download":
             return (
+               <div key={indd}>
               <ToggleFieldsContainer
                 data={item}
                 toggleVisibility={item?.toggleVisibility}
@@ -642,10 +648,11 @@ class ReactForm extends React.Component {
                     "https://api.dev.gateway.kusala.com.ng"
                   }
                 />
-              </ToggleFieldsContainer>
+              </ToggleFieldsContainer></div>
             );
           case "Camera":
             return (
+               <div key={indd}>
               <ToggleFieldsContainer
                 data={item}
                 toggleVisibility={item?.toggleVisibility}
@@ -664,10 +671,11 @@ class ReactForm extends React.Component {
                     "https://api.dev.gateway.kusala.com.ng"
                   }
                 />
-              </ToggleFieldsContainer>
+              </ToggleFieldsContainer></div>
             );
           case "FileUpload":
             return (
+               <div key={indd}>
               <ToggleFieldsContainer
                 data={item}
                 toggleVisibility={item?.toggleVisibility}
@@ -686,7 +694,7 @@ class ReactForm extends React.Component {
                     "https://api.dev.gateway.kusala.com.ng"
                   }
                 />
-              </ToggleFieldsContainer>
+              </ToggleFieldsContainer></div>
             );
           default:
             return this.getSimpleElement(item);

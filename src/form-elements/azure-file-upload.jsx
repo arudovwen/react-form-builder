@@ -7,6 +7,7 @@ import React, {
 import axios from 'axios';
 import { Copy, Download } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
+import { FileTypes } from '../data';
 
 const token = window?.localStorage.getItem('token') || '';
 
@@ -84,16 +85,27 @@ const AzureFileUploadComponent = forwardRef(
       }
     };
     /** ✅ Handles file selection */
-    const onSelectFile = (e) => {
-      const f = e.target.files?.[0];
-      if (!f) return;
+/** ✅ Handles file selection */
+const onSelectFile = (e) => {
+  const f = e.target.files?.[0];
+  if (!f) return;
 
-      setFile(f);
-      setError('');
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
-      // ✅ Automatically upload if enabled
-      if (autoUpload) uploadFile(f);
-    };
+  // 🚫 File too large
+  if (f.size > MAX_SIZE) {
+    setError('File size cannot exceed 5MB');
+    toast.error('File size cannot exceed 5MB');
+    e.target.value = ''; // clear file input
+    return;
+  }
+
+  setFile(f);
+  setError('');
+
+  // ✅ Automatically upload if enabled
+  if (autoUpload) uploadFile(f);
+};
 
     const openFileDialog = () => hiddenFileInput.current?.click();
 
@@ -131,6 +143,9 @@ const AzureFileUploadComponent = forwardRef(
       toast.success('Url Copied');
       return true;
     };
+        const selectedType = FileTypes?.find(
+          (i) => i.type === accept,
+        )?.typeName;
     return (
       <>
         <ToastContainer />
@@ -153,7 +168,11 @@ const AzureFileUploadComponent = forwardRef(
 
                 {!file && !defaultValue && (
                   <p className="mb-0 text-sm text-gray-500">
-                    Click to select a file or drop it here
+                    Click to select a file or drop it here  (
+                      {selectedType
+                        ? `${selectedType} files`
+                        : 'All File types'}
+                      )
                   </p>
                 )}
 

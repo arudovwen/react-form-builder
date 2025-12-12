@@ -2,43 +2,7 @@ import React from 'react';
 import store from './src/stores/store';
 import { ReactFormGenerator } from './src/index';
 
-const answers = [
-    {
-        id: 'DC262A73-AC20-45AD-9BA6-25D4D97F1DA9',
-        name: 'text_input_EEA4594E-52A6-464F-9EA0-6B206EB510D6',
-        custom_name: 'text_input_EEA4594E-52A6-464F-9EA0-6B206EB510D6',
-        value: 'ojunix@hotmail.com',
-        files: null,
-    },
-    {
-        id: '2629302A-5A3B-4B36-BBEA-D821918BBA89',
-        name: 'number_input_6950FBF6-A247-485D-9479-28CA1685BCCE',
-        custom_name: 'number_input_6950FBF6-A247-485D-9479-28CA1685BCCE',
-        value: '9',
-        files: null,
-    },
-    {
-        id: 'A3C075EA-806E-413F-91E5-9B68529C9B74',
-        name: 'text_input_48B58666-5BE6-4942-BBFF-368DF2226C66',
-        custom_name: 'text_input_48B58666-5BE6-4942-BBFF-368DF2226C66',
-        value: 'Ojorma Benjamin Odumah',
-        files: null,
-    },
-    {
-        id: '0CBFCC75-4E3B-464A-9A69-B4F86870A9FB',
-        name: 'amount_input_B3AD8324-93E6-44DF-9590-2E44A6F38236',
-        custom_name: 'amount_input_B3AD8324-93E6-44DF-9590-2E44A6F38236',
-        value: 900,
-        files: null,
-    },
-    {
-        id: '2D185A0E-15E7-451B-B4FB-56F6C0E2FC81',
-        name: 'file_upload_C3B233A9-43D3-4B13-A28B-EDE28CFE12A2',
-        custom_name: 'file_upload_C3B233A9-43D3-4B13-A28B-EDE28CFE12A2',
-        value: [],
-        files: null,
-    },
-];
+const answers = {};
 // const answers = {
 //   'dropdown_38716F53-51AA-4A53-9A9B-367603D82548': 'd2',
 //   'checkboxes_8D6BDC45-76A3-4157-9D62-94B6B24BB833': [
@@ -151,101 +115,7 @@ export default class Demobar extends React.Component {
                   // skip_validations={true}
                   onSubmit={this._onSubmit}
                   variables={this.props.variables}
-                  data={[
-    {
-        "id": "DC262A73-AC20-45AD-9BA6-25D4D97F1DA9",
-        "element": "TextInput",
-        "text": "Text Input",
-        "required": false,
-        "canHaveAnswer": true,
-        "canToggleField": true,
-        "readOnly": false,
-        "isReadOnly": false,
-        "canHavePageBreakBefore": true,
-        "canHaveAlternateForm": true,
-        "canHaveDisplayHorizontal": true,
-        "canHaveOptionCorrect": true,
-        "canHaveOptionValue": true,
-        "canPopulateFromApi": true,
-        "field_name": "text_input_EEA4594E-52A6-464F-9EA0-6B206EB510D6",
-        "label": "Email ",
-        "dirty": false
-    },
-    {
-        "id": "2629302A-5A3B-4B36-BBEA-D821918BBA89",
-        "element": "NumberInput",
-        "text": "Number Input",
-        "required": false,
-        "canHaveAnswer": true,
-        "canToggleField": true,
-        "readOnly": false,
-        "isReadOnly": false,
-        "canHavePageBreakBefore": true,
-        "canHaveAlternateForm": true,
-        "canHaveDisplayHorizontal": true,
-        "canHaveOptionCorrect": true,
-        "canHaveOptionValue": true,
-        "canPopulateFromApi": true,
-        "field_name": "number_input_6950FBF6-A247-485D-9479-28CA1685BCCE",
-        "label": "Age ",
-        "dirty": false
-    },
-    {
-        "id": "A3C075EA-806E-413F-91E5-9B68529C9B74",
-        "element": "TextInput",
-        "text": "Text Input",
-        "required": false,
-        "canHaveAnswer": true,
-        "canToggleField": true,
-        "readOnly": false,
-        "isReadOnly": false,
-        "canHavePageBreakBefore": true,
-        "canHaveAlternateForm": true,
-        "canHaveDisplayHorizontal": true,
-        "canHaveOptionCorrect": true,
-        "canHaveOptionValue": true,
-        "canPopulateFromApi": true,
-        "field_name": "text_input_48B58666-5BE6-4942-BBFF-368DF2226C66",
-        "label": "First Name ",
-        "dirty": false
-    },
-    {
-        "id": "0CBFCC75-4E3B-464A-9A69-B4F86870A9FB",
-        "element": "AmountInput",
-        "text": "Amount Input",
-        "required": false,
-        "canHaveAnswer": true,
-        "canToggleNegative": true,
-        "canToggleField": true,
-        "readOnly": false,
-        "isReadOnly": false,
-        "canHavePageBreakBefore": true,
-        "canHaveAlternateForm": true,
-        "canHaveDisplayHorizontal": true,
-        "canHaveOptionCorrect": true,
-        "canHaveOptionValue": true,
-        "canPopulateFromApi": true,
-        "field_name": "amount_input_B3AD8324-93E6-44DF-9590-2E44A6F38236",
-        "label": "Amount"
-    },
-    {
-        "id": "2D185A0E-15E7-451B-B4FB-56F6C0E2FC81",
-        "element": "FileUpload",
-        "text": "File Upload",
-        "required": false,
-        "canToggleField": true,
-        "readOnly": false,
-        "isReadOnly": false,
-        "canHavePageBreakBefore": true,
-        "canHaveAlternateForm": true,
-        "canHaveDisplayHorizontal": true,
-        "canHaveOptionCorrect": true,
-        "canHaveOptionValue": true,
-        "canPopulateFromApi": true,
-        "field_name": "file_upload_C3B233A9-43D3-4B13-A28B-EDE28CFE12A2",
-        "label": "Placeholder label"
-    }
-]}
+                  data={this.state.data}
                   locale='en'/>
 
                 <div className="modal-footer">

@@ -27,6 +27,8 @@ import CascadeDropdown from "./cascade-dropdown";
 import ArithmeticComponentView from "./ArithmeticComponentView";
 import Base64FileViewer from "./base64-render";
 import AzureFileUploadComponent from "./azure-file-upload";
+import { FileTypes } from "../data";
+import { toast, ToastContainer } from "react-toastify";
 
 const FormElements = {};
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -543,7 +545,7 @@ class DynamicInput extends React.Component {
 class DocumentSelect extends React.Component {
   constructor(props) {
     super(props);
- 
+
     this.state = {
       errorText: "",
       successText: "",
@@ -2066,7 +2068,7 @@ class Base64File extends React.Component {
     if (this.props.data.pageBreakBefore) {
       baseClasses += " alwaysbreak";
     }
-   
+
     return (
       <div style={{ ...this.props.style, ...style }} className={baseClasses}>
         {" "}
@@ -2289,7 +2291,7 @@ class FileUpload extends React.Component {
       fileType: PropTypes.string,
       pageBreakBefore: PropTypes.bool,
     }).isRequired,
-    defaultValue: PropTypes.string,
+    defaultValue: PropTypes.any,
     read_only: PropTypes.bool,
     style: PropTypes.object,
   };
@@ -2344,7 +2346,7 @@ class FileUpload extends React.Component {
 
   uploadFile = async (file) => {
     try {
-     const token = window?.localStorage.getItem('token') || '';
+      const token = window?.localStorage.getItem("token") || "";
       if (!token) return;
       const config = {
         headers: { Authorization: `Bearer ${token}` },
@@ -2389,20 +2391,37 @@ class FileUpload extends React.Component {
 
   handleFileChange = async (e) => {
     const file = e.target.files?.[0];
-   
-    if (file) {
-      const uploadedFile = await this.uploadFile(file);
-      if (uploadedFile) {
-        this.setState({
-          fileUpload:
-            this.props.data?.fileResult === "base64"
-              ? uploadedFile.base64File
-              : uploadedFile.url,
-        });
-      } else {
-        // Clear input so user can re-select same file
-        e.target.value = "";
-      }
+
+    if (!file) return;
+
+    // ---- SIZE VALIDATION ----
+    if (file.size > MAX_FILE_SIZE) {
+      // Optional: show error (toast, alert, message from parent, etc)
+
+      this.setState({
+        fileStatus: "error",
+        error: "File size must not exceed 5MB",
+      });
+      toast.error("File size cannot exceed 5MB");
+      // alert("File size must not exceed 5MB")
+
+      e.target.value = ""; // Clear input so user can reselect file
+      return;
+    }
+
+    // ---- UPLOAD ----
+    const uploadedFile = await this.uploadFile(file);
+
+    if (uploadedFile) {
+      this.setState({
+        fileUpload:
+          this.props.data?.fileResult === "base64"
+            ? uploadedFile.base64File
+            : uploadedFile.url,
+      });
+    } else {
+      // Clear input so user can re-select same file
+      e.target.value = "";
     }
   };
 
@@ -2432,9 +2451,12 @@ class FileUpload extends React.Component {
     const fileInputStyle = fileUpload
       ? { display: "none" }
       : { display: "flex" };
-
+    const selectedType = FileTypes?.find(
+      (i) => i?.type === data?.fileType
+    )?.typeName;
     return (
       <div style={style} className={baseClasses}>
+        <ToastContainer />
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
@@ -2444,7 +2466,9 @@ class FileUpload extends React.Component {
                 className="truncate fileName line-clamp-1"
                 style={{ textTransform: "capitalize", marginBottom: "8px" }}
               >
-                {defaultValue}
+                {typeof defaultValue === "object"
+                  ? defaultValue?.url
+                  : defaultValue}
               </div>
               <div>
                 {/* <button
@@ -2455,8 +2479,12 @@ class FileUpload extends React.Component {
                   <span>Preview File</span>
                 </button> */}
                 <UniversalFileViewer
-                  fileName={'Uploaded file'}
-                  fileUrl={defaultValue}
+                  fileName={"Uploaded file"}
+                  fileUrl={
+                    typeof defaultValue === "object"
+                      ? defaultValue?.url
+                      : defaultValue
+                  }
                 />
               </div>
             </div>
@@ -2464,7 +2492,6 @@ class FileUpload extends React.Component {
             <div className="image-upload-container">
               {!fileUpload && (
                 <div style={{ ...fileInputStyle, alignItems: "center" }}>
-               
                   <input
                     name={data.field_name}
                     type="file"
@@ -2482,7 +2509,11 @@ class FileUpload extends React.Component {
                       File
                     </div>
                     <p style={{ padding: "0 10px", margin: 0 }}>
-                      Select a file from your device.
+                      Select a file from your device (
+                      {selectedType
+                        ? `${selectedType} files`
+                        : "All File types"}
+                      )
                     </p>
                   </div>
                   {fileLoading && (
@@ -2510,15 +2541,13 @@ class FileUpload extends React.Component {
                 <div>
                   <div className="file-upload-preview">
                     <div
-                    className="truncate line-clamp-1"
+                      className="truncate line-clamp-1"
                       style={{ display: "inline-block", marginRight: "5px" }}
                     >
-                   
                       <span
                         style={{
                           fontSize: "14px",
                           color: "green",
-                         
                         }}
                         role="status"
                       >
@@ -2668,6 +2697,16 @@ class MultiFileUpload extends React.Component {
   handleFileUpload = async (e, index) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_FILE_SIZE) {
+      // Optional: show error (toast, alert, message from parent, etc)
+      toast.error("File size cannot exceed 5MB");
+      this.setState({
+        error: "File size must not exceed 5MB",
+      });
+
+      e.target.value = ""; // Clear input so user can reselect file
+      return;
+    }
 
     const uploadedFile = await this.uploadFile(file, index);
     if (uploadedFile) {
@@ -2734,6 +2773,7 @@ class MultiFileUpload extends React.Component {
     const { defaultValue } = this.props;
     return (
       <div className="gap-3 d-grid" style={{ rowGap: "12px" }}>
+        <ToastContainer />
         {defaultValue?.map((file, index) => (
           <div key={index}>
             <div className="mb-1 text-capitalize form-control">
@@ -2753,10 +2793,12 @@ class MultiFileUpload extends React.Component {
     const { read_only, data } = this.props;
     const isDisabled =
       file?.isLoading || ((read_only || data?.isReadOnly) && !data?.allowEdit);
-    const inputId = `fileInput-${file.id}`;
-
+    const inputId = `fileInput-${index}`;
+    const selectedType = FileTypes?.find(
+      (i) => i.type === data.fileType
+    )?.typeName;
     return (
-      <div key={file.id} className="gap-3 mb-3 d-flex align-items-center">
+      <div key={index} className="gap-3 mb-3 d-flex align-items-center">
         <div className="flex-grow-1 position-relative image-upload-control">
           <input
             type="file"
@@ -2775,8 +2817,12 @@ class MultiFileUpload extends React.Component {
               <i className="fas fa-upload me-2"></i> Upload
             </span>
             <span className="text-muted">
-              {file?.fileName || "Select a file from your device"}
+              {file?.fileName ||
+                `Select a file from your device (${
+                  selectedType ? selectedType + " files" : "All File types"
+                })`}
             </span>
+
             {file?.isLoading && (
               <div
                 className="spinner-border spinner-border-sm text-secondary position-absolute"

@@ -43,10 +43,12 @@ const AzureFileUploadComponent = forwardRef(
       accept,
       disabled,
       name,
+      maxFileSize,
     },
     ref,
   ) => {
     const { storageSettingId, containerName, folderName } = detail;
+    const maxFileSizeMB = maxFileSize || 5;
 
     const [uploadedFileUrl, setUploadedFileUrl] = useState(
       defaultValue?.url || null,
@@ -111,12 +113,12 @@ const onSelectFile = (e) => {
   const f = e.target.files?.[0];
   if (!f) return;
 
-  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+  const MAX_SIZE = maxFileSizeMB * 1024 * 1024;
 
   // 🚫 File too large
   if (f.size > MAX_SIZE) {
-    setError('File size cannot exceed 5MB');
-    toast.error('File size cannot exceed 5MB');
+    setError(`File size cannot exceed ${maxFileSizeMB}MB`);
+    toast.error(`File size cannot exceed ${maxFileSizeMB}MB`);
     e.target.value = ''; // clear file input
     return;
   }
@@ -207,7 +209,7 @@ const onSelectFile = (e) => {
                       Click to upload or drag and drop
                     </p>
                     <p className="text-xs text-gray-500">
-                      {selectedType ? `${selectedType} files` : "All file types"} (Max 5MB)
+                      {selectedType ? `${selectedType} files` : "All file types"} (Max {maxFileSizeMB}MB)
                     </p>
                   </div>
                 </div>

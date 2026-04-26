@@ -515,8 +515,6 @@ class ReactForm extends React.Component {
       ? (this.props.data || []).filter((i) => i?.alternateForm === true)
       : this.props.data || [];
     const liveAnswers = this._answersWithVariables();
-    console.log({displayItems});
-    
     const items = displayItems
       .filter((x) => x && !x.parentId)
       .map((item, indd) => {

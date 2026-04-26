@@ -423,6 +423,7 @@ class Toolbar extends React.Component {
         field_name: 'file_upload_',
         canReadOnly: true,
         canToggleField: true,
+        maxFileSize: 5,
       },
       {
         key: 'Base64FileViewer',
@@ -441,6 +442,7 @@ class Toolbar extends React.Component {
         field_name: 'multi_file_upload_',
         canReadOnly: true,
         canToggleField: true,
+        maxFileSize: 5,
       },
       {
         key: 'AzureFileUpload',
@@ -451,6 +453,7 @@ class Toolbar extends React.Component {
         canReadOnly: true,
         canToggleField: true,
         azureSettings: {},
+        maxFileSize: 5,
       },
       {
         key: 'PhoneNumber',
@@ -708,6 +711,7 @@ class Toolbar extends React.Component {
       elementOptions.canHandleMultiOptions = item.canHandleMultiOptions;
     }
     elementOptions.azureSettings = item.azureSettings;
+    elementOptions.maxFileSize = item.maxFileSize;
     elementOptions.denominators = item.denominators;
     elementOptions.mappedFields = item.mappedFields;
     elementOptions.visibilityFields = item.visibilityFields;

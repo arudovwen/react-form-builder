@@ -43,7 +43,7 @@ import {
 import classNames from "classnames";
 
 const FormElements = {};
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const DEFAULT_MAX_FILE_SIZE = 5; // 5MB
 const defaultFileType =
   "image/jpeg, image/png, image/gif, image/webp, image/svg+xml, image/bmp, image/tiff, image/x-icon, image/heic, " +
   "application/pdf, application/msword, " +
@@ -75,9 +75,10 @@ function getAllFieldValues(data, values) {
   return result;
 }
 
-const validateFile = (file, fileType) => {
-  if (file.size > MAX_FILE_SIZE) {
-    return "File size exceeds 5MB limit";
+const validateFile = (file, fileType, maxFileSizeMB = DEFAULT_MAX_FILE_SIZE) => {
+  const maxFileSize = maxFileSizeMB * 1024 * 1024;
+  if (file.size > maxFileSize) {
+    return `File size exceeds ${maxFileSizeMB}MB limit`;
   }
   if (fileType && !fileType.includes(file.type)) {
     return "Invalid file type";
@@ -319,7 +320,6 @@ class DynamicInput extends React.Component {
 
   async _validate(value) {
     const { url, method, responseType } = this.props.data;
-    console.log({ url, method, responseType });
     if (!url) {
       this.setState({
         errorText: "Please add a valid API URL",
@@ -355,7 +355,7 @@ class DynamicInput extends React.Component {
             data?.description ??
             data?.data?.content ??
             data?.content;
-          console.log({ dynamic: description, typeof: typeof description });
+          
           this.setState({
             successText: "Validation success",
             errorText: "",
@@ -444,7 +444,6 @@ class DynamicInput extends React.Component {
     const baseClasses = `SortableItem rfb-item${data.pageBreakBefore ? " alwaysbreak" : ""}`;
     const hasObjectData =
       objectFileData && Object.keys(objectFileData).length > 0;
-    console.log({ hasObjectData, objectFileData });
 
     return (
       <div style={style} className={baseClasses}>
@@ -2348,7 +2347,11 @@ class FileUpload extends React.Component {
         headers: { Authorization: `Bearer ${token}` },
       };
 
-      const validationError = validateFile(file, this.props.data.fileType);
+      const validationError = validateFile(
+        file,
+        this.props.data.fileType,
+        this.props.data.maxFileSize,
+      );
       if (validationError) {
         this.setState({ error: validationError });
         return null;
@@ -2386,12 +2389,14 @@ class FileUpload extends React.Component {
   };
 
   processFile = async (file) => {
-    if (file.size > MAX_FILE_SIZE) {
+    const maxFileSizeMB = this.props.data.maxFileSize || DEFAULT_MAX_FILE_SIZE;
+    const maxFileSize = maxFileSizeMB * 1024 * 1024;
+    if (file.size > maxFileSize) {
       this.setState({
         fileStatus: "error",
-        error: "File size must not exceed 5MB",
+        error: `File size must not exceed ${maxFileSizeMB}MB`,
       });
-      toast.error("File size cannot exceed 5MB");
+      toast.error(`File size cannot exceed ${maxFileSizeMB}MB`);
       return;
     }
 
@@ -2535,7 +2540,7 @@ class FileUpload extends React.Component {
                         {selectedType
                           ? `${selectedType} files`
                           : "All file types"}{" "}
-                        (Max 5MB)
+                        ({`Max ${data.maxFileSize || DEFAULT_MAX_FILE_SIZE}MB`})
                       </p>
                     </div>
                   </div>
@@ -2664,7 +2669,11 @@ class MultiFileUpload extends React.Component {
   uploadFile = async (file, index) => {
     try {
       const { data: formData, apiBaseUrl } = this.props;
-      const validationError = validateFile(file, formData?.fileType);
+      const validationError = validateFile(
+        file,
+        formData?.fileType,
+        formData?.maxFileSize,
+      );
       if (validationError) {
         this.setState({ error: validationError });
         return null;
@@ -2720,11 +2729,13 @@ class MultiFileUpload extends React.Component {
   handleFileUpload = async (e, index) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > MAX_FILE_SIZE) {
+    const maxFileSizeMB = this.props.data.maxFileSize || DEFAULT_MAX_FILE_SIZE;
+    const maxFileSize = maxFileSizeMB * 1024 * 1024;
+    if (file.size > maxFileSize) {
       // Optional: show error (toast, alert, message from parent, etc)
-      toast.error("File size cannot exceed 5MB");
+      toast.error(`File size cannot exceed ${maxFileSizeMB}MB`);
       this.setState({
-        error: "File size must not exceed 5MB",
+        error: `File size must not exceed ${maxFileSizeMB}MB`,
       });
 
       e.target.value = ""; // Clear input so user can reselect file
@@ -3042,6 +3053,7 @@ class AzureFileUpload extends React.Component {
             onUploaded={this.handleFileChange}
             apiUrl={this.props.apiBaseUrl}
             accept={data.fileType || defaultFileType}
+            maxFileSize={data.maxFileSize}
             defaultValue={fileUpload}
           />
         </div>

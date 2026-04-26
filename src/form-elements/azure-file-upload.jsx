@@ -5,11 +5,32 @@ import React, {
   forwardRef,
 } from 'react';
 import axios from 'axios';
-import { Copy, Download } from 'lucide-react';
+import {
+  Copy,
+  Download,
+  Upload,
+  File,
+  X,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+} from 'lucide-react';
+import classNames from 'classnames';
 import { toast, ToastContainer } from 'react-toastify';
+
 import { FileTypes } from '../data';
 
-const token = window?.localStorage.getItem('token') || '';
+const token = window?.localStorage.getItem("token") || "";
+
+const isImage = (url) => {
+  if (!url) return false;
+  if (typeof url !== "string") return false;
+  if (url.startsWith("data:image")) return true;
+  const extensions = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"];
+  const ext = url.split("?")[0].split(".").pop().toLowerCase();
+  return extensions.includes(ext);
+};
+
 
 const AzureFileUploadComponent = forwardRef(
   (
@@ -147,15 +168,21 @@ const onSelectFile = (e) => {
           (i) => i.type === accept,
         )?.typeName;
     return (
-      <>
+      <div className="w-full">
         <ToastContainer />
-        <div>
-          {!disabled ? (
-            <div>
-              {/* Dropzone */}
+        
+        {!disabled ? (
+          <div className="relative">
+            {!file && !uploadedFileUrl ? (
               <div
-                className="px-4 py-2 mb-4 text-center transition bg-white border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50"
                 onClick={openFileDialog}
+                className={classNames(
+                  "relative group cursor-pointer rounded-2xl border-2 border-dashed transition-all duration-300 ease-in-out px-6 !py-4 text-center",
+                  uploading
+                    ? "border-blue-500 bg-blue-50/50"
+                    : "border-gray-200 bg-gray-50/30 hover:border-blue-400 hover:bg-white hover:shadow-xl",
+                  error ? "border-red-300 bg-red-50/50" : ""
+                )}
               >
                 <input
                   type="file"
@@ -165,79 +192,148 @@ const onSelectFile = (e) => {
                   accept={accept}
                   name={name}
                 />
-
-                {!file && !defaultValue && (
-                  <p className="mb-0 text-sm text-gray-500">
-                    Click to select a file or drop it here  (
-                      {selectedType
-                        ? `${selectedType} files`
-                        : 'All File types'}
-                      )
-                  </p>
-                )}
-
-                {(file || defaultValue) && (
-                  <div className="flex items-center justify-between flex-1 space-y-1 text-sm gap-x-6">
-                    <p className="font-medium text-left text-align-left">{file?.url || defaultValue}</p>
-                    {/* <p className="text-xs text-gray-500">
-                    {file?.type || defaultValue?.type || 'Unknown type'} •{' '}
-                    {((file?.size || defaultValue?.size) / 1024).toFixed(1)} KB
-                  </p> */}
+                
+                <div className="flex flex-col items-center justify-center space-y-4">
+                  <div className="p-2 bg-white rounded-full text-gray-400 group-hover:text-blue-500 shadow-sm transition-colors duration-300">
+                    {uploading ? (
+                      <Loader2 className="w-4  h-4 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
                   </div>
-                )}
+                  
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-gray-700">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {selectedType ? `${selectedType} files` : "All file types"} (Max 5MB)
+                    </p>
+                  </div>
+                </div>
 
-                {/* Manual Upload Button (only if autoUpload = false) */}
-                {!autoUpload && file && (
-                  <button
-                    onClick={() => uploadFile(file)}
-                    disabled={uploading || !file}
-                    className="px-2 py-1 text-xs text-white bg-blue-600 rounded disabled:bg-blue-300"
-                  >
-                    {uploading ? 'Uploading...' : 'Upload'}
-                  </button>
+                {uploading && (
+                  <div className="absolute inset-0 bg-white/60 flex items-center justify-center rounded-2xl z-20">
+                    <div className="flex flex-col items-center w-2/3 space-y-3">
+                      <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-blue-600 transition-all duration-300" 
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium text-gray-600">Uploading {progress}%</span>
+                    </div>
+                  </div>
                 )}
               </div>
-
-              {/* Progress bar */}
-              {uploading && (
-                <div className="w-full h-3 overflow-hidden bg-gray-200 rounded">
-                  <div
-                    className="h-full transition-all bg-blue-600"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              )}
-
-              {/* Error */}
-              {error && <div className="text-sm text-red-600">{error}</div>}
-            </div>
-          ) : (
-            <div className="px-6 py-2 mb-4 text-center transition bg-white border border-gray-100 rounded-lg">
-              {defaultValue && (
-                <div className="flex items-center justify-between space-y-1 text-sm gap-x-6">
-                  <div className="text-align-left">
-                    <p className="font-medium text-left text-align-left">{defaultValue} </p>
-                    {/* <p className="text-xs font-medium text-left">{defaultValue?.url}</p> */}
-                    {/* <p className="text-xs text-left text-gray-500">
-                    {defaultValue?.type || 'Unknown type'} •{' '}
-                    {(defaultValue?.size / 1024).toFixed(1)} KB
-                  </p> */}
+            ) : (
+              <div className="relative overflow-hidden rounded-2xl border border-green-200 bg-green-50/30 p-4 transition-all hover:shadow-lg">
+                <div className="flex items-center space-x-4">
+                  {isImage(uploadedFileUrl || defaultValue?.url) ? (
+                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 shadow-sm border border-white bg-white">
+                      <img
+                        src={uploadedFileUrl || defaultValue?.url}
+                        className="w-full h-full object-cover"
+                        alt="Thumbnail"
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-2 bg-green-100 rounded-lg text-green-600 flex-shrink-0">
+                      <CheckCircle className="w-6 h-6" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      File uploaded successfully
+                    </p>
+                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                      {file?.name || "Azure Blob File"}
+                    </p>
                   </div>
-                  <div className="flex text-sm gap-x-3">
-                    <button type="button" onClick={() => copyFile()}>
-                      <Copy />
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={copyFile}
+                      className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors border-none bg-transparent"
+                      title="Copy URL"
+                    >
+                      <Copy className="w-5 h-5" />
                     </button>
-                    <button type="button" onClick={() => downloadFile()}>
-                      <Download />
-                    </button>
+                    {!autoUpload && !uploadedFileUrl && file && (
+                      <button
+                        onClick={() => uploadFile(file)}
+                        disabled={uploading}
+                        className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition-colors"
+                      >
+                        {uploading ? 'Uploading...' : 'Upload'}
+                      </button>
+                    )}
                   </div>
                 </div>
-              )}
-            </div>
-          )}
-        </div>
-      </>
+              </div>
+            )}
+
+            {error && (
+              <div className="mt-3 flex items-start space-x-2 text-red-600 transition-all duration-300">
+                <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                <p className="text-sm font-medium">{error}</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4">
+            {defaultValue ? (
+              <div className="flex items-center justify-between text-left">
+                <div className="flex items-center space-x-3 overflow-hidden">
+                  {isImage(defaultValue) ? (
+                    <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 shadow-sm border border-white bg-white">
+                      <img
+                        src={defaultValue}
+                        className="w-full h-full object-cover"
+                        alt="Preview"
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-2 bg-white rounded-lg text-gray-400 flex-shrink-0">
+                      <File className="w-6 h-6" />
+                    </div>
+                  )}
+                  <div className="truncate">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {defaultValue}
+                    </p>
+                    <p className="text-xs text-gray-500 whitespace-nowrap">
+                      Read only view
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 pl-4">
+                  <button 
+                    type="button" 
+                    onClick={copyFile}
+                    className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-100 rounded-lg transition-colors border-none bg-transparent"
+                    title="Copy URL"
+                  >
+                    <Copy className="w-5 h-5" />
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={downloadFile}
+                    className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-100 rounded-lg transition-colors border-none bg-transparent"
+                    title="Download"
+                  >
+                    <Download className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 text-center italic">No file uploaded</p>
+            )}
+          </div>
+        )}
+      </div>
     );
+
   },
 );
 

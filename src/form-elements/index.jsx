@@ -29,6 +29,18 @@ import Base64FileViewer from "./base64-render";
 import AzureFileUploadComponent from "./azure-file-upload";
 import { FileTypes } from "../data";
 import { toast, ToastContainer } from "react-toastify";
+import {
+  Upload,
+  File,
+  X,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  Plus,
+} from "lucide-react";
+
+import classNames from "classnames";
 
 const FormElements = {};
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -45,34 +57,96 @@ function isValidGuid(guid) {
     /^[{]?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}[}]?$/;
   return guidPattern.test(guid);
 }
+
 function getAllFieldValues(data, values) {
   if (!Array.isArray(data) || typeof values !== "object" || !values) {
     return [];
   }
-
-  let result = [];
-
+  const result = [];
   for (const item of data) {
     if (
       item.field_name &&
-      values.hasOwnProperty(item.field_name) &&
+      Object.prototype.hasOwnProperty.call(values, item.field_name) &&
       values[item.field_name]
     ) {
       result.push(values[item.field_name]);
     }
   }
-
   return result;
 }
+
 const validateFile = (file, fileType) => {
   if (file.size > MAX_FILE_SIZE) {
     return "File size exceeds 5MB limit";
   }
-
   if (fileType && !fileType.includes(file.type)) {
     return "Invalid file type";
   }
+  return null;
+};
 
+// Module-level helpers — defined once, not recreated on every render
+function addSpaceToUppercase(str) {
+  return str.replace(/([A-Z])/g, " $1").trim();
+}
+
+function isDynamicInputImage(value) {
+  if (!value || typeof value !== "string") return false;
+  const base64DataUrlPattern =
+    /^data:image\/(jpeg|jpg|png|gif|bmp|webp);base64,/i;
+  const rawBase64ImageHeaders = [
+    /^\/9j\//, // JPEG
+    /^iVBOR/, // PNG
+    /^R0lGOD/, // GIF
+    /^Qk0/, // BMP
+    /^UklGR/, // WebP
+  ];
+  const rawBase64Pattern = /^[A-Za-z0-9+/]{100,}={0,2}$/;
+  const urlPattern = /\.(jpeg|jpg|png|gif|bmp|webp)(\?.*)?$/i;
+  return (
+    base64DataUrlPattern.test(value) ||
+    urlPattern.test(value) ||
+    rawBase64Pattern.test(value) ||
+    rawBase64ImageHeaders.some((pattern) => pattern.test(value))
+  );
+}
+
+function getImageDataUrl(rawBase64) {
+  if (!rawBase64 || typeof rawBase64 !== "string") return null;
+  const header = rawBase64.substring(0, 10);
+  const mimeMap = [
+    ["/9j/", "image/jpeg"],
+    ["iVBOR", "image/png"],
+    ["R0lGOD", "image/gif"],
+    ["Qk", "image/bmp"],
+    ["UklGR", "image/webp"],
+  ];
+  const found = mimeMap.find(([prefix]) => header.startsWith(prefix));
+  if (found) {
+    return `data:${found[1]};base64,${rawBase64}`;
+  }
+  if (rawBase64.startsWith("data:")) return rawBase64;
+  console.warn("Unknown image type or invalid base64");
+  return rawBase64;
+}
+
+const isImage = (url) => {
+  if (!url) return false;
+  if (typeof url !== "string") return false;
+  if (url.startsWith("data:image")) return true;
+  const extensions = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"];
+  const ext = url.split("?")[0].split(".").pop().toLowerCase();
+  return extensions.includes(ext);
+};
+
+const getFileUrl = (file, isBase64 = false) => {
+  if (!file) return null;
+  if (typeof file === "object") return file.url;
+  if (typeof file === "string") {
+    if (file.startsWith("http") || file.startsWith("data:")) return file;
+    if (isBase64) return `data:image/png;base64,${file}`;
+    return file;
+  }
   return null;
 };
 
@@ -184,36 +258,35 @@ class DynamicInput extends React.Component {
   constructor(props) {
     super(props);
     this.inputField = React.createRef();
-    this.submitBtnRef = React.createRef(); // Add a ref for the submit button
-    // Use state for managing errorText, successText, and validating state
     this.state = {
       errorText: "",
       successText: "",
       validating: false,
       description: "",
-      objectFileData: [],
+      objectFileData: {},
     };
-
-    // Debounced functions
-    this.debouncedValidateInput = debounce(this.validateInput, 1200);
-    this.debouncedValidateError = debounce(this.handleError, 1500);
-    this.getFileUrl = this.getFileUrl.bind(this);
+    // Single debounce: input change → validate after 800ms
+    this.debouncedValidate = debounce(this._validate, 800);
   }
 
   componentDidMount() {
     if (this.props.defaultValue) {
-      this.validateInput(this.props.defaultValue);
+      this._validate(this.props.defaultValue);
     }
   }
 
-  async getFileUrl(id) {
+  componentWillUnmount() {
+    this.debouncedValidate.clear();
+  }
+
+  async _fetchFileUrl(id) {
     try {
       const { fileUrl } = this.props.data;
       const tempFileUrl =
         fileUrl ||
-        "https://qa-document-management.sterling.ng/api/v1/docs/preview";
+        "https://uat-qa-document-management.sterling.ng/api/v1/docs/preview";
       const { data, status } = await axios.get(
-        `${tempFileUrl}/${id}?documentType=Others`
+        `${tempFileUrl}/${id}?documentType=Others`,
       );
       if (status === 200 && data?.data?.blobString) {
         return data.data.blobString;
@@ -224,260 +297,163 @@ class DynamicInput extends React.Component {
     return id;
   }
 
-  async flattenFirstObjectInArray(obj) {
+  _flattenFirstObjectInArray(obj) {
     try {
       const result = { ...obj };
-
       Object.keys(obj).forEach((key) => {
         if (
           Array.isArray(obj[key]) &&
           obj[key].length > 0 &&
           typeof obj[key][0] === "object"
         ) {
-          Object.assign(result, obj[key][0]); // Merge first object in array
-          delete result[key]; // Remove original array key
+          Object.assign(result, obj[key][0]);
+          delete result[key];
         }
       });
-
       return result;
     } catch (error) {
-      console.log(error);
-      return obj; // Return the original object if an error occurs
+      console.error("flattenFirstObjectInArray error:", error);
+      return obj;
     }
   }
 
-  // Function to validate input using an API request
-  // eslint-disable-next-line no-unused-vars
-  async validateInput(value) {
-    const { url, method, apiKey, responseType } = this.props.data;
-    // const imageItems = ['photograph', 'signature'];
-    // Validate if URL is provided
+  async _validate(value) {
+    const { url, method, responseType } = this.props.data;
+    console.log({ url, method, responseType });
     if (!url) {
-      this.setState({ errorText: "Please add a valid API URL" });
+      this.setState({
+        errorText: "Please add a valid API URL",
+        successText: "",
+        description: "",
+      });
       return;
     }
 
-    // API call to validate the input
+    const token = window.localStorage.getItem("token");
+    // if (!token) return;
+
+    this.setState({
+      validating: true,
+      errorText: "",
+      successText: "",
+      description: "",
+      objectFileData: {},
+    });
+
     try {
-      this.setState({ validating: true });
-      const token = window.localStorage.getItem("token");
-      if (!token) return;
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
-      // Make the API call using the methold provided (GET by default)
+      const config = { headers: { Authorization: `Bearer ${token}` } };
       const { data, status } = await axios[method || "get"](
         `${url}/${value}`,
-        config
+        config,
       );
 
       if (status === 200) {
-        if ((data?.data?.status || data?.status) === true) {
+        const isSuccess = (data?.data?.status ?? data?.status) === true;
+        if (isSuccess) {
+          const description =
+            data.data?.description ??
+            data?.description ??
+            data?.data?.content ??
+            data?.content;
+          console.log({ dynamic: description, typeof: typeof description });
           this.setState({
             successText: "Validation success",
             errorText: "",
-            description: data.data?.description || data?.description,
+            description,
           });
 
-          // Check if responseType is object and process the description
-          if (responseType === "object") {
-            const ObjData = data.data?.description || data?.description;
-            const flattendObj = await this.flattenFirstObjectInArray(ObjData);
-            // Map through the object and handle errors individually for each item
-            const mappedData = await Promise.all(
-              Object.keys(flattendObj)?.map(async (item) => {
-                const newObj = {};
+          if (typeof description === "object") {
+            const flatObj = this._flattenFirstObjectInArray(description);
+            const entries = await Promise.all(
+              Object.keys(flatObj).map(async (key) => {
                 try {
-                  if (isValidGuid(flattendObj[item])) {
-                    newObj[item] = await this.getFileUrl(flattendObj[item]);
-                  } else {
-                    newObj[item] = flattendObj[item];
-                  }
-                } catch (fileError) {
-                  // Handle the error for each file fetch and continue
-                  console.error(
-                    `Error fetching file URL for ${item}:`,
-                    fileError
-                  );
-                  newObj[item] = flattendObj[item]; // Fallback to original value if error occurs
+                  const val = isValidGuid(flatObj[key])
+                    ? await this._fetchFileUrl(flatObj[key])
+                    : flatObj[key];
+                  return [key, val];
+                } catch (err) {
+                  console.error(`Error fetching file for "${key}":`, err);
+                  return [key, flatObj[key]];
                 }
-                return newObj;
-              })
+              }),
             );
-
-            // After resolving all the promises, flatten the result
-            const flattenedData = mappedData.reduce(
-              (acc, obj) => ({ ...acc, ...obj }),
-              {}
-            );
-
-            this.setState({
-              objectFileData: flattenedData,
-            });
-          }
-
-          // Enable the submit button after success
-          if (this.submitBtnRef.current) {
-            this.submitBtnRef.current.disabled = false; // Enable the submit button
+            this.setState({ objectFileData: Object.fromEntries(entries) });
           }
         } else {
-          // If validation fails, disable the submit button and reset description
-          if (this.submitBtnRef.current) {
-            this.submitBtnRef.current.disabled = true; // Disable the submit button
-          }
           this.setState({
             errorText: "Data not found!",
             successText: "",
             description: "",
+            objectFileData: {},
           });
         }
       }
     } catch (error) {
-      // Handle errors during API validation
       this.setState({
         errorText:
           error?.response?.data?.message ||
           "Validation failed, please try again",
         successText: "",
         description: "",
+        objectFileData: {},
       });
-
-      // Disable the submit button if an error occurs
-      if (this.submitBtnRef.current) {
-        this.submitBtnRef.current.disabled = true; // Disable the submit button on error
-      }
     } finally {
-      // Set validating state to false once the validation is complete
       this.setState({ validating: false });
     }
   }
 
-  // Handle input changes and invoke the debounced validation function
   handleChange = (event) => {
     const { value } = event.target;
-    const stringValue = getAllFieldValues(
-      this.props.data.mappedFields,
-      this.props.resultData
-    ).join("/");
-    this.debouncedValidateError(`${value}/${stringValue}`);
-  };
-
-  // Handle validation errors, updating errorText in state
-  handleError = (value) => {
     const { url } = this.props.data;
     if (!url) {
       this.setState({ errorText: "Please add a valid API URL" });
-      if (this.submitBtnRef.current) {
-        this.submitBtnRef.current.disabled = true; // Disable the submit button if no URL
-      }
-    } else {
-      this.setState({ errorText: "" });
-      if (this.submitBtnRef.current) {
-        this.submitBtnRef.current.disabled = false; // Enable submit button if URL exists
-      }
-      this.debouncedValidateInput(value);
+      return;
     }
+    const appendedFields = getAllFieldValues(
+      this.props.data.mappedFields,
+      this.props.resultData,
+    ).join("/");
+    const fullValue = appendedFields ? `${value}/${appendedFields}` : value;
+    this.setState({
+      errorText: "",
+      successText: "",
+      description: "",
+      objectFileData: {},
+    });
+    this.debouncedValidate(fullValue);
   };
 
   render() {
     const { data, mutable, defaultValue, read_only, style } = this.props;
     const { field_name, maxLength, responseType, allowEdit } = data;
+    const { errorText, successText, description, validating, objectFileData } =
+      this.state;
 
-    // Default props setup for the input field
-    const props = {
+    const inputProps = {
       type: "text",
       className: "form-control",
       name: field_name,
       disabled: read_only && !allowEdit ? "disabled" : undefined,
       maxLength: maxLength || undefined,
-      responseType: responseType || "string",
     };
-
-    // If mutable, add defaultValue and ref
     if (mutable) {
-      props.defaultValue = defaultValue;
-      props.ref = this.inputField;
+      inputProps.defaultValue = defaultValue;
+      inputProps.ref = this.inputField;
     }
 
-    // Base classes for the input container
-    let baseClasses = "SortableItem rfb-item";
-    if (data.pageBreakBefore) {
-      baseClasses += " alwaysbreak";
-    }
-    function addSpaceToUppercase(str) {
-      return str.replace(/([A-Z])/g, " $1").trim();
-    }
-    function isImage(value) {
-      if (!value || typeof value !== "string") return false;
+    const baseClasses = `SortableItem rfb-item${data.pageBreakBefore ? " alwaysbreak" : ""}`;
+    const hasObjectData =
+      objectFileData && Object.keys(objectFileData).length > 0;
+    console.log({ hasObjectData, objectFileData });
 
-      // Matches data URLs for common image types
-      const base64DataUrlPattern =
-        /^data:image\/(jpeg|jpg|png|gif|bmp|webp);base64,/i;
-
-      // Matches raw base64 string for known image signatures
-      // JPEG usually starts with /9j/, PNG with iVBOR...
-      const rawBase64ImageHeaders = [
-        /^\/9j\//, // JPEG
-        /^iVBOR/, // PNG
-        /^R0lGOD/, // GIF
-        /^Qk0/, // BMP
-        /^UklGR/, // WebP
-      ];
-
-      // Matches raw base64 string of sufficient length (generic fallback)
-      const rawBase64Pattern = /^[A-Za-z0-9+/]{100,}={0,2}$/;
-
-      // Matches image file URLs ending with common extensions
-      const urlPattern = /\.(jpeg|jpg|png|gif|bmp|webp)(\?.*)?$/i;
-
-      // Check all patterns
-      return (
-        base64DataUrlPattern.test(value) ||
-        urlPattern.test(value) ||
-        rawBase64Pattern.test(value) ||
-        rawBase64ImageHeaders.some((pattern) => pattern.test(value))
-      );
-    }
-    function getImageDataUrl(rawBase64) {
-      if (!rawBase64 || typeof rawBase64 !== "string") return null;
-
-      // Trim and take first few chars for detection
-      const header = rawBase64.substring(0, 10);
-
-      let mimeType = null;
-
-      if (header.startsWith("/9j/")) {
-        mimeType = "image/jpeg";
-      } else if (header.startsWith("iVBOR")) {
-        mimeType = "image/png";
-      } else if (header.startsWith("R0lGOD")) {
-        mimeType = "image/gif";
-      } else if (header.startsWith("Qk")) {
-        mimeType = "image/bmp";
-      } else if (header.startsWith("UklGR")) {
-        mimeType = "image/webp";
-      }
-
-      if (mimeType) {
-        return `data:${mimeType};base64,${rawBase64}`;
-      } else {
-        console.warn("Unknown image type or invalid base64");
-        return rawBase64;
-      }
-    }
-
-    // https://api.dev.workflow.kusala.com.ng/api/v1/WorkFlows/validate
-    //  https://qa-document-management.sterling.ng/api/v1/docs/preview/243bf8a6-7903-4a8e-bd2a-943558c58a69?documentType=Others
     return (
       <div style={style} className={baseClasses}>
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
           <div className="clearfix pr-6 d-flex align-items-center position-relative">
-            <input {...props} onChange={this.handleChange} />
-            {this.state.validating && (
+            <input {...inputProps} onChange={this.handleChange} />
+            {validating && (
               <div
                 className="align-middle spinner-border spinner-border-sm text-secondary position-absolute"
                 style={{ right: "16px" }}
@@ -487,45 +463,38 @@ class DynamicInput extends React.Component {
               </div>
             )}
           </div>
-          {/* Render error message if there's one */}
-          {this.state.errorText && (
-            <ErrorMessage message={this.state.errorText} />
+          {errorText && <ErrorMessage message={errorText} />}
+          {successText && !description && (
+            <SuccessMessage message={successText} />
           )}
-          {this.state.successText && !this.state.description && (
-            <SuccessMessage message={this.state.successText} />
-          )}
-          {this.state.description && responseType === "string" && (
+          {description && typeof description === "string" && (
             <div style={{ marginTop: "6px" }}>
               <span className="block pt-1 text-capitalize text-14 font-weight-bold">
-                {this.state.description}
+                {description}
               </span>
             </div>
           )}
-          {this.state.objectFileData && responseType === "object" && (
+          {hasObjectData && typeof description === "object" && (
             <>
-              {Object.keys(this.state.objectFileData)?.map((item) => (
+              {Object.keys(objectFileData).map((item) => (
                 <div key={item} style={{ marginTop: "16px" }}>
                   <label className="block pt-1 text-capitalize text-14 font-weight-bold form-label">
                     <span>{addSpaceToUppercase(item)} </span>
                   </label>
-
-                  {!isImage(this.state.objectFileData[item]) ? (
+                  {!isDynamicInputImage(objectFileData[item]) ? (
                     <div
                       className="form-control loaded_file"
                       style={{ background: "#efefef4d" }}
                     >
-                      {typeof this.state.objectFileData[item] !== "object"
-                        ? this.state.objectFileData[item]
+                      {typeof objectFileData[item] !== "object"
+                        ? objectFileData[item]
                         : "N/a"}
                     </div>
                   ) : (
-                    <div className="">
-                      {/* Show Guid - {getFileUrl(this.state.description[item])} */}
-                      {this.state.objectFileData[item] ? (
+                    <div>
+                      {objectFileData[item] ? (
                         <ImageViewer
-                          imageUrl={getImageDataUrl(
-                            this.state.objectFileData[item]
-                          )}
+                          imageUrl={getImageDataUrl(objectFileData[item])}
                         />
                       ) : (
                         "No file found"
@@ -558,7 +527,7 @@ class DocumentSelect extends React.Component {
     };
     this.intervalId = null;
     this.requestId = new URLSearchParams(window.location.search).get(
-      "workflowId"
+      "workflowId",
     );
   }
 
@@ -602,7 +571,7 @@ class DocumentSelect extends React.Component {
       const token = window.localStorage.getItem("token");
       if (!token) return;
       const tempUser = JSON.parse(
-        window.localStorage.getItem("LoginInfo") || "{}"
+        window.localStorage.getItem("LoginInfo") || "{}",
       );
       const position = tempUser?.position ?? tempUser.role;
       this.setState({ fileLoading: true });
@@ -616,7 +585,7 @@ class DocumentSelect extends React.Component {
         }/documents/v1/DocumentSignature/position-signature-status?documentId=${id}&position=${position}&requestId=${
           this.requestId
         }&fromWorkflow=true`,
-        config
+        config,
       );
 
       if (response.status === 200) {
@@ -656,7 +625,7 @@ class DocumentSelect extends React.Component {
         }/documents/v1/DocumentSignature/get-signatures-request?documentId=${id}&requestId=${
           this.requestId
         }`,
-        config
+        config,
       );
 
       if (response.status === 200) {
@@ -696,7 +665,7 @@ class DocumentSelect extends React.Component {
       "/request/process/rework",
     ];
     return validApprovePaths.some((path) =>
-      pathname?.toLowerCase()?.includes(path)
+      pathname?.toLowerCase()?.includes(path),
     );
   }
 
@@ -712,7 +681,7 @@ class DocumentSelect extends React.Component {
       signature,
     } = this.state;
     const tempUser = JSON.parse(
-      window.localStorage.getItem("LoginInfo") || "{}"
+      window.localStorage.getItem("LoginInfo") || "{}",
     );
     const position = tempUser?.position ?? tempUser.role;
     const email = tempUser?.email;
@@ -720,7 +689,7 @@ class DocumentSelect extends React.Component {
 
     const parsedDocumentId = documentId ? JSON.parse(documentId) : {};
     const userCanSign = signatures.some(
-      (sig) => sig?.position?.toLowerCase() === position?.toLowerCase()
+      (sig) => sig?.position?.toLowerCase() === position?.toLowerCase(),
     );
     if (!this.isPathValid()) {
       return null;
@@ -1009,7 +978,7 @@ class CustomSelect extends React.Component {
     if (data?.isCascade) {
       const dependentValue = resultData?.[data.dependentField];
       return data.options.filter(
-        (opt) => opt.key?.toString() === dependentValue?.toString()
+        (opt) => opt.key?.toString() === dependentValue?.toString(),
       );
     }
 
@@ -1600,7 +1569,7 @@ class Dropdown extends React.Component {
     if (data?.isCascade) {
       return (
         data.options?.filter(
-          (opt) => opt.key?.toString() === dependentValue?.toString()
+          (opt) => opt.key?.toString() === dependentValue?.toString(),
         ) || []
       );
     }
@@ -2294,6 +2263,7 @@ class FileUpload extends React.Component {
     defaultValue: PropTypes.any,
     read_only: PropTypes.bool,
     style: PropTypes.object,
+    apiBaseUrl: PropTypes.string,
   };
 
   fileReader = null;
@@ -2306,6 +2276,7 @@ class FileUpload extends React.Component {
       fileLoading: false,
       fileStatus: null,
       error: null,
+      isDragging: false,
     };
   }
 
@@ -2323,6 +2294,31 @@ class FileUpload extends React.Component {
       this.fileReader = null;
     }
   }
+
+  handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (this.props.read_only) return;
+    this.setState({ isDragging: true });
+  };
+
+  handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    this.setState({ isDragging: false });
+  };
+
+  handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    this.setState({ isDragging: false });
+    if (this.props.read_only) return;
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      await this.processFile(file);
+    }
+  };
 
   getBase64 = (file) =>
     new Promise((resolve, reject) => {
@@ -2371,11 +2367,11 @@ class FileUpload extends React.Component {
           this.props.apiBaseUrl || "https://api.dev.gateway.kusala.com.ng"
         }/workflows/api/v1/FileUpload/upload-document`,
         data,
-        config
+        config,
       );
 
       this.setState({ fileStatus: "success" });
-      return { url: response.data.data.url, base64File };
+      return { url: response.data.data.url, base64File, fileName: file.name };
     } catch (error) {
       const errorMessage =
         error.response?.data?.message || "Unable to upload file";
@@ -2389,27 +2385,16 @@ class FileUpload extends React.Component {
     }
   };
 
-  handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
-
-    if (!file) return;
-
-    // ---- SIZE VALIDATION ----
+  processFile = async (file) => {
     if (file.size > MAX_FILE_SIZE) {
-      // Optional: show error (toast, alert, message from parent, etc)
-
       this.setState({
         fileStatus: "error",
         error: "File size must not exceed 5MB",
       });
       toast.error("File size cannot exceed 5MB");
-      // alert("File size must not exceed 5MB")
-
-      e.target.value = ""; // Clear input so user can reselect file
       return;
     }
 
-    // ---- UPLOAD ----
     const uploadedFile = await this.uploadFile(file);
 
     if (uploadedFile) {
@@ -2419,10 +2404,14 @@ class FileUpload extends React.Component {
             ? uploadedFile.base64File
             : uploadedFile.url,
       });
-    } else {
-      // Clear input so user can re-select same file
-      e.target.value = "";
     }
+  };
+
+  handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await this.processFile(file);
+    e.target.value = "";
   };
 
   clearFileUpload = () => {
@@ -2443,154 +2432,188 @@ class FileUpload extends React.Component {
   };
 
   render() {
-    const { fileUpload, fileLoading, error } = this.state;
+    const { fileUpload, fileLoading, error, isDragging } = this.state;
     const { data, read_only, defaultValue, style } = this.props;
-    const baseClasses = `SortableItem rfb-item${
-      data.pageBreakBefore ? " alwaysbreak" : ""
-    }`;
-    const fileInputStyle = fileUpload
-      ? { display: "none" }
-      : { display: "flex" };
+
+    const baseClasses = classNames("SortableItem rfb-item", {
+      alwaysbreak: data.pageBreakBefore,
+    });
+
     const selectedType = FileTypes?.find(
-      (i) => i?.type === data?.fileType
+      (i) => i?.type === data?.fileType,
     )?.typeName;
+
     return (
       <div style={style} className={baseClasses}>
         <ToastContainer />
         <ComponentHeader {...this.props} />
         <div className="form-group">
           <ComponentLabel {...this.props} />
+
           {read_only && defaultValue ? (
-            <div>
-              <div
-                className="truncate fileName line-clamp-1"
-                style={{ textTransform: "capitalize", marginBottom: "8px" }}
-              >
-                {typeof defaultValue === "object"
-                  ? defaultValue?.url
-                  : defaultValue}
-              </div>
-              <div>
-                {/* <button
-                  className="btn btn-view"
-                  onClick={this.handlePreviewFile}
-                  aria-label={`Preview file ${defaultValue.fileName}`}
-                >
-                  <span>Preview File</span>
-                </button> */}
-                <UniversalFileViewer
-                  fileName={"Uploaded file"}
-                  fileUrl={
-                    typeof defaultValue === "object"
-                      ? defaultValue?.url
-                      : defaultValue
-                  }
-                />
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 transition-all hover:shadow-md">
+              <div className="flex items-center space-x-4 text-left">
+                {isImage(
+                  getFileUrl(defaultValue, data?.fileResult === "base64"),
+                ) && (
+                  <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 shadow-sm border border-white bg-white">
+                    <img
+                      src={getFileUrl(
+                        defaultValue,
+                        data?.fileResult === "base64",
+                      )}
+                      className="w-full h-full object-cover"
+                      alt="Preview"
+                    />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <UniversalFileViewer
+                    fileName={
+                      typeof defaultValue === "object"
+                        ? defaultValue?.fileName
+                        : "Uploaded file"
+                    }
+                    fileUrl={getFileUrl(
+                      defaultValue,
+                      data?.fileResult === "base64",
+                    )}
+                  />
+                </div>
               </div>
             </div>
           ) : (
-            <div className="image-upload-container">
+            <div className="relative">
+              {/* Drop Zone */}
               {!fileUpload && (
-                <div style={{ ...fileInputStyle, alignItems: "center" }}>
+                <div
+                  onDragOver={this.handleDragOver}
+                  onDragLeave={this.handleDragLeave}
+                  onDrop={this.handleDrop}
+                  className={classNames(
+                    "relative group cursor-pointer rounded-2xl border-2 border-dashed transition-all duration-300 ease-in-out px-6 !py-5 text-center",
+                    isDragging
+                      ? "border-blue-500 bg-blue-50/50 scale-[1.01]"
+                      : "border-gray-200 bg-gray-50/30 hover:border-blue-400 hover:bg-white",
+                    error ? "border-red-300 bg-red-50/50" : "",
+                  )}
+                >
                   <input
                     name={data.field_name}
                     type="file"
                     accept={data.fileType || defaultFileType}
-                    className="image-upload"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     onChange={this.handleFileChange}
                     disabled={
                       (read_only || data?.isReadOnly) && !data?.allowEdit
                     }
-                    aria-label="Choose file"
                   />
-                  <div className="image-upload-control">
-                    <div className="btn btn-default" role="button" tabIndex={0}>
-                      <i className="fas fa-file" aria-hidden="true"></i> Upload
-                      File
-                    </div>
-                    <p style={{ padding: "0 10px", margin: 0 }}>
-                      Select a file from your device (
-                      {selectedType
-                        ? `${selectedType} files`
-                        : "All File types"}
-                      )
-                    </p>
-                  </div>
-                  {fileLoading && (
+
+                  <div className="flex flex-col items-center justify-center space-y-4">
                     <div
-                      className="align-middle spinner-border spinner-border-sm text-secondary position-absolute"
-                      style={{ right: "16px" }}
-                      role="status"
-                      aria-label="Loading"
-                    />
+                      className={classNames(
+                        "rounded-full transition-colors duration-300",
+                        isDragging
+                          ? "bg-blue-100 text-blue-600"
+                          : "bg-white text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500",
+                      )}
+                    >
+                      {fileLoading ? (
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      ) : (
+                        <Upload className="w-6 h-6" />
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-gray-700">
+                        {isDragging
+                          ? "Drop your file here"
+                          : "Click to upload or drag and drop"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {selectedType
+                          ? `${selectedType} files`
+                          : "All file types"}{" "}
+                        (Max 5MB)
+                      </p>
+                    </div>
+                  </div>
+
+                  {fileLoading && (
+                    <div className="absolute inset-0 bg-white/60 flex items-center justify-center rounded-2xl z-20">
+                      <div className="flex flex-col items-center space-y-2">
+                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                        <span className="text-sm font-medium text-gray-600">
+                          Uploading...
+                        </span>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
 
-              {error && (
-                <div
-                  className="error-message"
-                  role="alert"
-                  style={{ color: "red", marginTop: "8px" }}
-                >
-                  {error}
-                </div>
-              )}
-
-              {fileUpload && (
-                <div>
-                  <div className="file-upload-preview">
-                    <div
-                      className="truncate line-clamp-1"
-                      style={{ display: "inline-block", marginRight: "5px" }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "14px",
-                          color: "green",
-                        }}
-                        role="status"
-                      >
-                        File uploaded successfully
-                      </span>
+              {/* Success State with Preview */}
+              {fileUpload && !fileLoading && (
+                <div className="relative overflow-hidden rounded-2xl border border-green-200 bg-green-50/30 p-4 transition-all hover:shadow-lg">
+                  <div className="flex items-center space-x-4">
+                    {isImage(
+                      getFileUrl(fileUpload, data?.fileResult === "base64"),
+                    ) ? (
+                      <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 shadow-sm border border-white bg-white">
+                        <img
+                          src={getFileUrl(
+                            fileUpload,
+                            data?.fileResult === "base64",
+                          )}
+                          className="w-full h-full object-cover"
+                          alt="Thumbnail"
+                        />
+                      </div>
+                    ) : (
+                      <div className="p-2 bg-green-100 rounded-lg text-green-600 flex-shrink-0">
+                        <CheckCircle className="w-6 h-6" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="flex items-center space-x-2">
+                        {isImage(
+                          getFileUrl(fileUpload, data?.fileResult === "base64"),
+                        ) && <CheckCircle className="w-4 h-4 text-green-500" />}
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          File uploaded successfully
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-3 mt-1">
+                        <UniversalFileViewer
+                          fileName="View File"
+                          fileUrl={getFileUrl(
+                            fileUpload,
+                            data?.fileResult === "base64",
+                          )}
+                        />
+                        <span className="text-xs text-gray-500">
+                          Ready to submit
+                        </span>
+                      </div>
                     </div>
                     <button
                       type="button"
-                      className="btn btn-file-upload-clear"
-                      style={{
-                        padding: "4px 0",
-                        fontSize: "12px",
-                        marginTop: "6px",
-                      }}
                       onClick={this.clearFileUpload}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors border-none bg-transparent"
                       aria-label="Remove file"
                     >
-                      <i className="fas fa-trash" aria-hidden="true"></i>
+                      <X className="w-5 h-5" />
                     </button>
                   </div>
+                </div>
+              )}
 
-                  {/* {this.state.fileStatus === "success" && (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        columnGap: "20px",
-                        alignItems: "center",
-                        marginTop: "4px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "green",
-                          fontStyle: "italic",
-                        }}
-                        role="status"
-                      >
-                        File uploaded successfully
-                      </span>
-                    </div>
-                  )} */}
+              {/* Error State */}
+              {error && (
+                <div className="mt-3 flex items-start space-x-2 text-red-600 transition-all duration-300">
+                  <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm font-medium">{error}</p>
                 </div>
               )}
             </div>
@@ -2774,17 +2797,31 @@ class MultiFileUpload extends React.Component {
     return (
       <div className="gap-3 d-grid" style={{ rowGap: "12px" }}>
         <ToastContainer />
-        {defaultValue?.map((file, index) => (
-          <div key={index}>
-            <div className="mb-1 text-capitalize form-control">
-              {file.fileData?.fileName}
+        {defaultValue?.map((file, index) => {
+          const url = getFileUrl(file.fileData);
+          return (
+            <div
+              key={index}
+              className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center space-x-4 text-left"
+            >
+              {isImage(url) && (
+                <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 shadow-sm border border-white bg-white">
+                  <img
+                    src={url}
+                    className="w-full h-full object-cover"
+                    alt="Preview"
+                  />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <UniversalFileViewer
+                  fileName={file.fileData?.fileName || `File ${index + 1}`}
+                  fileUrl={url}
+                />
+              </div>
             </div>
-            <UniversalFileViewer
-              fileName={file?.fileData?.fileName}
-              fileUrl={file?.fileData?.url}
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
@@ -2795,72 +2832,105 @@ class MultiFileUpload extends React.Component {
       file?.isLoading || ((read_only || data?.isReadOnly) && !data?.allowEdit);
     const inputId = `fileInput-${index}`;
     const selectedType = FileTypes?.find(
-      (i) => i.type === data.fileType
+      (i) => i.type === data.fileType,
     )?.typeName;
+
     return (
-      <div key={index} className="gap-3 mb-3 d-flex align-items-center">
-        <div className="flex-grow-1 position-relative image-upload-control">
-          <input
-            type="file"
-            onChange={(e) => this.handleFileUpload(e, index)}
-            disabled={isDisabled}
-            accept={data?.fileType || this.state.fileType}
-            className="d-none"
-            id={inputId}
-          />
-          <label
-            htmlFor={inputId}
-            className="mb-0 cursor-pointer d-flex align-items-center"
-            style={{ flex: 1 }}
-          >
-            <span className="mr-3 btn btn-default">
-              <i className="fas fa-upload me-2"></i> Upload
-            </span>
-            <span className="text-muted">
-              {file?.fileName ||
-                `Select a file from your device (${
-                  selectedType ? selectedType + " files" : "All File types"
-                })`}
-            </span>
-
-            {file?.isLoading && (
-              <div
-                className="spinner-border spinner-border-sm text-secondary position-absolute"
-                style={{ right: "1rem" }}
-                role="status"
-                aria-label="Loading"
-              />
+      <div key={file.id} className="mb-4">
+        {file.fileData ? (
+          <div className="relative overflow-hidden rounded-xl border border-green-200 bg-green-50/30 p-3 transition-all hover:shadow-md flex items-center space-x-3">
+            {isImage(getFileUrl(file.fileData)) ? (
+              <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 shadow-sm border border-white bg-white">
+                <img
+                  src={getFileUrl(file.fileData)}
+                  className="w-full h-full object-cover"
+                  alt="Thumbnail"
+                />
+              </div>
+            ) : (
+              <div className="p-1.5 bg-green-100 rounded text-green-600 flex-shrink-0">
+                <CheckCircle className="w-5 h-5" />
+              </div>
             )}
-          </label>
-
-          <div className="gap-2 d-flex" style={{ columnGap: "10px" }}>
-            {file?.fileData && !file?.isLoading && (
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {file.fileName}
+              </p>
+              <p className="text-xs text-gray-500">Uploaded successfully</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <UniversalFileViewer
+                fileName={file.fileName}
+                fileUrl={getFileUrl(file.fileData)}
+              />
               <button
                 type="button"
                 onClick={() => this.clearFileUpload(index)}
-                className="btn-file-upload-clear"
-                style={{ padding: "8px", fontSize: "14px", border: "none" }}
-                aria-label="Clear file"
+                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors border-none bg-transparent"
                 title="Clear file"
               >
-                <i className="fas fa-trash"></i>
+                <X className="w-4 h-4" />
               </button>
-            )}
-
-            {this.state.fileUpload.length > 1 && !file?.isLoading && (
-              <button
-                type="button"
-                onClick={() => this.removeFileInput(index)}
-                className="btn-file-upload-clear"
-                style={{ padding: "8px", fontSize: "14px", border: "none" }}
-                aria-label="Remove input"
-                title="Remove input"
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            )}
+              {this.state.fileUpload.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => this.removeFileInput(index)}
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors border-none bg-transparent"
+                  title="Remove input"
+                >
+                  <X className="w-4 h-4 text-red-400" />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div
+            className={classNames(
+              "relative group cursor-pointer rounded-xl border-2 border-dashed transition-all duration-300 p-4 text-center",
+              isDisabled
+                ? "opacity-50 cursor-not-allowed"
+                : "border-gray-200 bg-gray-50/30 hover:border-blue-400 hover:bg-white",
+            )}
+          >
+            <input
+              type="file"
+              onChange={(e) => this.handleFileUpload(e, index)}
+              disabled={isDisabled}
+              accept={data?.fileType || this.state.fileType}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              id={inputId}
+            />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-white rounded-full text-gray-400 group-hover:text-blue-500 shadow-sm transition-colors">
+                  {file.isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Upload className="w-5 h-5" />
+                  )}
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-medium text-gray-700">
+                    {file.isLoading ? "Uploading..." : "Click to upload file"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {selectedType ? `${selectedType} up to 5MB` : "Up to 5MB"}
+                  </p>
+                </div>
+              </div>
+              {this.state.fileUpload.length > 1 && !file.isLoading && (
+                <button
+                  type="button"
+                  onClick={() => this.removeFileInput(index)}
+                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors border-none bg-transparent relative z-20"
+                  title="Remove input"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -2869,9 +2939,9 @@ class MultiFileUpload extends React.Component {
     const { fileUpload, error } = this.state;
     const { style, data, read_only, defaultValue } = this.props;
 
-    const baseClasses = `SortableItem rfb-item${
-      data?.pageBreakBefore ? " alwaysbreak" : ""
-    }`;
+    const baseClasses = classNames("SortableItem rfb-item", {
+      alwaysbreak: data?.pageBreakBefore,
+    });
 
     return (
       <div style={style} className={baseClasses}>
@@ -2884,23 +2954,27 @@ class MultiFileUpload extends React.Component {
           ) : (
             <div className="mb-3">
               {fileUpload.map((file, index) =>
-                this.renderFileInput(file, index)
+                this.renderFileInput(file, index),
               )}
 
               <button
                 type="button"
                 onClick={this.addFileInput}
-                className="py-0 btn btn-link btn-sm text-decoration-none"
+                className="flex items-center px-4 py-2 mt-2 space-x-2 text-sm font-medium text-blue-600 transition-all bg-blue-50 rounded-lg hover:bg-blue-100 border-none outline-none"
               >
-                <i className="mr-2 fas fa-plus"></i>
-                Add File
+                <Plus className="w-4 h-4" />
+                <span>Add Another File</span>
               </button>
             </div>
           )}
 
           {error && (
-            <div className="mt-3 alert alert-danger" role="alert">
-              {error}
+            <div
+              className="mt-3 flex items-start space-x-2 text-red-600 transition-all duration-300"
+              role="alert"
+            >
+              <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+              <p className="text-sm font-medium">{error}</p>
             </div>
           )}
         </div>
@@ -2908,6 +2982,7 @@ class MultiFileUpload extends React.Component {
     );
   }
 }
+
 class AzureFileUpload extends React.Component {
   static propTypes = {
     data: PropTypes.shape({

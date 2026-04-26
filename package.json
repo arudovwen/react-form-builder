@@ -1,6 +1,6 @@
 {
   "name": "@arudovwen/react-form-builder",
-  "version": "2.3.25",
+  "version": "2.3.27",
   "description": "A complete form builder for react.",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
@@ -108,8 +108,8 @@
     "build": "webpack --mode production --config webpack.production.config.js",
     "build:dev": "webpack --mode development",
     "build:umd": "webpack --mode development --config webpack.production.config.js",
-    "build:style": "sass ./scss/application.scss dist/app.css --style compressed",
-    "build:lib": "npm run transpile && npm run build:style",
+    "build:style": "sass ./scss/application.scss dist/app.css --style compressed && npx tailwindcss -i dist/app.css -o dist/app.css",
+    "build:lib": "npx tailwindcss -i ./src/styles/style.css -o ./src/styles/final.css && npm run transpile && npm run build:style",
     "build:dist": "npm run build && npm run copy:dist",
     "clean": "rimraf dist",
     "copy:dist": "copyfiles -f \"./dist/*\" \"./public/dist\"",

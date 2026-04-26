@@ -9,6 +9,8 @@ import { FieldSet } from "./fieldset";
 import CustomElement from "./form-elements/custom-element";
 import Registry from "./stores/registry";
 import ToggleFieldsContainer from "./ToggleFieldsContainer";
+import "./styles/final.css";
+
 
 const { Image, Checkboxes, Signature, Download, Camera, FileUpload } =
   FormElements;

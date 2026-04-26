@@ -1149,7 +1149,7 @@ export default class FormElementsEdit extends React.Component {
                 <option value="post">POST</option>
               </select>
             </div>
-            <div className="form-group">
+            {/* <div className="form-group">
               <label className="control-label text-13" htmlFor="responseType">
                 Response Type
               </label>
@@ -1167,7 +1167,7 @@ export default class FormElementsEdit extends React.Component {
                 <option value="string">String</option>
                 <option value="object">Object</option>
               </select>
-            </div>
+            </div> */}
             <div className="form-group">
               <label className="control-label text-13" htmlFor="apiKey">
                 <span>
